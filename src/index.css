@@ -50,14 +50,6 @@ body {
   background: #64748b;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
 /* Date input styling */
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -66,4 +58,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* KaTeX dark mode: invert math text color */
+.dark .katex {
+  color: #e2e8f0;
+}
+
+.dark .katex .mord,
+.dark .katex .mbin,
+.dark .katex .mrel,
+.dark .katex .mopen,
+.dark .katex .mclose,
+.dark .katex .mpunct,
+.dark .katex .minner {
+  color: inherit;
 }

@@ -36,12 +36,12 @@ function processText(text: string): string {
 
   // Code blocks: ```...```
   result = result.replace(/```([\s\S]*?)```/g, (_, code) =>
-    `<pre class="bg-slate-800 text-slate-100 rounded-lg p-3 my-2 overflow-x-auto text-sm font-mono">${code.trim()}</pre>`
+    `<pre class="bg-slate-800 dark:bg-slate-900 text-slate-100 dark:text-slate-200 rounded-lg p-3 my-2 overflow-x-auto text-sm font-mono">${code.trim()}</pre>`
   );
 
   // Inline code: `...`
   result = result.replace(/`([^`]+)`/g, (_, code) =>
-    `<code class="bg-slate-100 text-slate-700 rounded px-1.5 py-0.5 text-sm font-mono">${code}</code>`
+    `<code class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded px-1.5 py-0.5 text-sm font-mono">${code}</code>`
   );
 
   // Bold: **...**

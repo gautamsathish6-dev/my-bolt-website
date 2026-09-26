@@ -70,7 +70,7 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
   };
 
   const maskColors = [
-    'rgb(20, 184, 166)',
+    'rgb(37, 99, 235)',
     'rgb(245, 158, 11)',
     'rgb(239, 68, 68)',
     'rgb(99, 102, 241)',
@@ -78,29 +78,29 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-2xl z-10">
           <div className="flex items-center gap-2">
-            <Square className="w-5 h-5 text-teal-500" />
-            <h3 className="font-semibold text-slate-800">Mask Image</h3>
+            <Square className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">Mask Image</h3>
           </div>
           <button
             onClick={onCancel}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="px-6 py-4">
-          <p className="text-sm text-slate-500 mb-3">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
             Click and drag on the image to draw colored boxes over the areas you want to hide during review.
           </p>
 
           <div
             ref={containerRef}
             onMouseDown={handleMouseDown}
-            className="relative inline-block w-full rounded-xl overflow-hidden border-2 border-slate-200 cursor-crosshair select-none"
+            className="relative inline-block w-full rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-crosshair select-none"
           >
             <img
               ref={imgRef}
@@ -127,7 +127,7 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); removeMask(i); }}
-                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white dark:bg-slate-700 shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/30"
                 >
                   <X className="w-3 h-3 text-red-500" />
                 </button>
@@ -135,7 +135,7 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
             ))}
             {currentRect && (
               <div
-                className="absolute border-2 border-teal-400 bg-teal-400/50"
+                className="absolute border-2 border-blue-400 bg-blue-400/50"
                 style={{
                   left: `${currentRect.x * 100}%`,
                   top: `${currentRect.y * 100}%`,
@@ -148,10 +148,10 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
 
           {masks.length > 0 && (
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-slate-400">{masks.length} mask{masks.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{masks.length} mask{masks.length !== 1 ? 's' : ''}</span>
               <button
                 onClick={() => setMasks([])}
-                className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg"
+                className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 px-2 py-1 rounded-lg"
               >
                 <Trash2 className="w-3 h-3" /> Clear all
               </button>
@@ -159,16 +159,16 @@ export function MaskEditor({ image, masks: initialMasks, onSave, onCancel }: Mas
           )}
         </div>
 
-        <div className="flex gap-2 justify-end px-6 py-4 border-t border-slate-200 sticky bottom-0 bg-white rounded-b-2xl">
+        <div className="flex gap-2 justify-end px-6 py-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-800 rounded-b-2xl">
           <button
             onClick={onCancel}
-            className="px-4 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium"
+            className="px-4 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium"
           >
             Cancel
           </button>
           <button
             onClick={() => onSave(masks)}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium transition-colors"
           >
             <Check className="w-4 h-4" />
             Save Masks ({masks.length})

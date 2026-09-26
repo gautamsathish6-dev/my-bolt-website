@@ -25,7 +25,7 @@ const MASK_COLORS = [
 ];
 
 export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
-  const [cardType, setCardType] = useState<CardType>(card.cardType === 'cloze' ? 'basic' : (card.cardType ?? 'basic'));
+  const [cardType, setCardType] = useState<CardType>((card.cardType as string) === 'cloze' ? 'basic' : (card.cardType ?? 'basic'));
   const [frontText, setFrontText] = useState(card.frontText);
   const [backText, setBackText] = useState(card.backText);
   const [frontImage, setFrontImage] = useState<string | null>(card.frontImage);

@@ -30,7 +30,7 @@ function loadDraft(): DraftState | null {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const draft = JSON.parse(raw) as DraftState;
-    if (draft.cardType === 'cloze') draft.cardType = 'basic';
+    if ((draft.cardType as string) === 'cloze') draft.cardType = 'basic';
     return draft;
   } catch {
     return null;

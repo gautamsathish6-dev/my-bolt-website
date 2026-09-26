@@ -1,7 +1,7 @@
 import { Deck, Card, ReviewLog } from './types';
 
 const DB_NAME = 'omnideck-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DECKS_STORE = 'decks';
 const CARDS_STORE = 'cards';
 const LOGS_STORE = 'reviewLogs';
@@ -32,7 +32,7 @@ function openDB(): Promise<IDBDatabase> {
       }
 
       if (oldVersion < 3 && db.objectStoreNames.contains(DECKS_STORE)) {
-        const tx = event.target!.transaction;
+        const tx = (event.target as IDBOpenDBRequest).transaction;
         if (tx) {
           const store = tx.objectStore(DECKS_STORE);
           const getAllReq = store.getAll();
@@ -40,6 +40,22 @@ function openDB(): Promise<IDBDatabase> {
             for (const deck of getAllReq.result as Deck[]) {
               if (deck.finalReviewHours === undefined) {
                 store.put({ ...deck, finalReviewHours: 48 });
+              }
+            }
+          };
+        }
+      }
+
+      // v4: migrate cloze cards to basic
+      if (oldVersion < 4 && db.objectStoreNames.contains(CARDS_STORE)) {
+        const tx = (event.target as IDBOpenDBRequest).transaction;
+        if (tx) {
+          const store = tx.objectStore(CARDS_STORE);
+          const getAllReq = store.getAll();
+          getAllReq.onsuccess = () => {
+            for (const card of getAllReq.result as Card[]) {
+              if ((card.cardType as string) === 'cloze') {
+                store.put({ ...card, cardType: 'basic' });
               }
             }
           };
@@ -207,7 +223,7 @@ export async function importAllData(json: string): Promise<void> {
     for (const card of data.cards) {
       cardStore.put({
         ...card,
-        cardType: card.cardType ?? 'basic',
+        cardType: (card.cardType as string) === 'cloze' ? 'basic' : (card.cardType ?? 'basic'),
         masks: card.masks ?? [],
       });
     }

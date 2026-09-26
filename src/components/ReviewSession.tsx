@@ -321,7 +321,7 @@ export function ReviewSession({
             <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">3</kbd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-emerald-500 dark:text-emerald-400">Easy</span>
+            <span className="text-sky-500 dark:text-sky-400">Easy</span>
             <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">4</kbd>
           </div>
         </div>
@@ -407,11 +407,11 @@ export function ReviewSession({
                 </button>
                 <button
                   onClick={() => handleRate('Easy')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
                 >
                   <span className="text-lg">!</span>
                   <span className="text-sm font-medium">Easy</span>
-                  <kbd className="text-[10px] text-emerald-300 dark:text-emerald-500">4</kbd>
+                  <kbd className="text-[10px] text-sky-300 dark:text-sky-500">4</kbd>
                 </button>
               </div>
             )
@@ -452,11 +452,11 @@ export function ReviewSession({
                 </button>
                 <button
                   onClick={() => handleRate('Easy')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
                 >
                   <span className="text-lg">!</span>
                   <span className="text-sm font-medium">Easy</span>
-                  <kbd className="text-[10px] text-emerald-300 dark:text-emerald-500">4</kbd>
+                  <kbd className="text-[10px] text-sky-300 dark:text-sky-500">4</kbd>
                 </button>
               </div>
             )
