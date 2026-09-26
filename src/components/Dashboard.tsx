@@ -1,11 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
-import {
-  Plus, Rocket, Calendar, Play, Layers, Clock, AlertCircle,
-  Trash2, RotateCcw, Settings, Pencil, X, Upload, GripVertical,
-  ArrowRight, CheckSquare, Square, Filter, Copy
-} from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Rocket, Calendar, Play, Layers, Clock, CircleAlert as AlertCircle, Trash2, RotateCcw, Settings, Pencil, X, Upload, GripVertical, ArrowRight, SquareCheck as CheckSquare, Square, Filter } from 'lucide-react';
 import { Deck, Card, ReviewLog, CardState } from '../types';
-import { isCardDue, getDueCount, getNewCount } from '../fsrs';
+import { getDueCount, getNewCount } from '../fsrs';
 import { CardEditModal } from './CardEditModal';
 import { MathRenderer } from './MathRenderer';
 
@@ -68,7 +64,6 @@ export function Dashboard({
     ? Math.ceil(totalCount / daysUntilExam)
     : null;
 
-  // 7-day streak grid
   const streakData = useMemo(() => {
     const days: { date: Date; count: number }[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -85,7 +80,6 @@ export function Dashboard({
 
   const todayReviewCount = streakData[6]?.count || 0;
 
-  // All tags
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     cards.forEach((c) => c.tags.forEach((t) => tagSet.add(t)));
@@ -124,7 +118,7 @@ export function Dashboard({
     setDraggedCardId(cardId);
   };
 
-  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+  const handleDragOver = (e: React.DragEvent, _targetId: string) => {
     if (!reorderMode || !draggedCardId) return;
     e.preventDefault();
   };
@@ -144,13 +138,13 @@ export function Dashboard({
   const selectedArray = Array.from(selectedIds);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
+    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
       <div className="max-w-4xl mx-auto px-8 py-10">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <h2 className="text-3xl font-bold text-slate-800 tracking-tight truncate">{deck.name}</h2>
+              <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate">{deck.name}</h2>
               <div className="relative shrink-0">
                 <button
                   onClick={(e) => {
@@ -162,7 +156,7 @@ export function Dashboard({
                       setShowEditMenu(true);
                     }
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 dark:text-slate-500 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -170,18 +164,18 @@ export function Dashboard({
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowEditMenu(false)} />
                     <div
-                      className="fixed z-50 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[180px]"
+                      className="fixed z-50 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 min-w-[180px]"
                       style={{ top: editMenuPos.top, left: editMenuPos.left }}
                     >
                       <button
                         onClick={() => { setConfirmReset(true); setShowEditMenu(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                       >
                         <RotateCcw className="w-3.5 h-3.5" /> Reset Deck History
                       </button>
                       <button
                         onClick={() => { setConfirmDelete(true); setShowEditMenu(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete Deck
                       </button>
@@ -191,7 +185,7 @@ export function Dashboard({
               </div>
             </div>
             {deck.examDate && (
-              <p className="text-sm text-slate-500 flex items-center gap-1.5">
+              <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" />
                 Exam in {daysUntilExam} day{daysUntilExam !== 1 ? 's' : ''}
                 {dailyLimit && ` · ${dailyLimit} cards/day target`}
@@ -202,41 +196,41 @@ export function Dashboard({
 
         {/* Analytics Row */}
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
               <Layers className="w-4 h-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Total</span>
             </div>
-            <p className="text-2xl font-bold text-slate-800">{totalCount}</p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{totalCount}</p>
           </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
               <CheckSquare className="w-4 h-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Learned</span>
             </div>
-            <p className="text-2xl font-bold text-teal-600">{learnedCount}</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{learnedCount}</p>
           </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Due</span>
             </div>
-            <p className="text-2xl font-bold text-amber-500">{dueCount}</p>
+            <p className="text-2xl font-bold text-amber-500 dark:text-amber-400">{dueCount}</p>
           </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-1">
               <AlertCircle className="w-4 h-4" />
               <span className="text-xs font-medium uppercase tracking-wide">New</span>
             </div>
-            <p className="text-2xl font-bold text-slate-600">{newCount}</p>
+            <p className="text-2xl font-bold text-slate-600 dark:text-slate-300">{newCount}</p>
           </div>
         </div>
 
         {/* 7-day streak grid */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Last 7 Days</span>
-            <span className="text-sm text-slate-400">{todayReviewCount} reviewed today</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Last 7 Days</span>
+            <span className="text-sm text-slate-400 dark:text-slate-500">{todayReviewCount} reviewed today</span>
           </div>
           <div className="flex items-center gap-2">
             {streakData.map((day, i) => {
@@ -248,15 +242,15 @@ export function Dashboard({
                     className={`w-full h-12 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
                       day.count > 0
                         ? 'text-white'
-                        : 'text-slate-300 bg-slate-50'
-                    } ${isToday ? 'ring-2 ring-teal-300' : ''}`}
+                        : 'text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-700/50'
+                    } ${isToday ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''}`}
                     style={day.count > 0 ? {
-                      backgroundColor: `rgba(20, 184, 166, ${0.3 + intensity * 0.7})`
+                      backgroundColor: `rgba(37, 99, 235, ${0.3 + intensity * 0.7})`
                     } : undefined}
                   >
                     {day.count > 0 ? day.count : ''}
                   </div>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
                     {day.date.toLocaleDateString('en', { weekday: 'short' }).charAt(0)}
                   </span>
                 </div>
@@ -270,27 +264,27 @@ export function Dashboard({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={onAddCards}
-              className="flex items-center gap-3 px-5 py-4 rounded-xl bg-white border border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all group"
+              className="flex items-center gap-3 px-5 py-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-slate-700 transition-all group"
             >
-              <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center group-hover:bg-teal-100 transition-colors">
-                <Plus className="w-5 h-5 text-teal-600" />
+              <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-slate-700 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-slate-600 transition-colors">
+                <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-slate-700">Add Cards</p>
-                <p className="text-sm text-slate-400">Create flashcards</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-200">Add Cards</p>
+                <p className="text-sm text-slate-400 dark:text-slate-500">Create flashcards</p>
               </div>
             </button>
 
             <button
               onClick={onImportCSV}
-              className="flex items-center gap-3 px-5 py-4 rounded-xl bg-white border border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all group"
+              className="flex items-center gap-3 px-5 py-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-slate-700 transition-all group"
             >
-              <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-teal-100 transition-colors">
-                <Upload className="w-5 h-5 text-slate-600 group-hover:text-teal-600 transition-colors" />
+              <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-slate-600 transition-colors">
+                <Upload className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-slate-700">Import CSV</p>
-                <p className="text-sm text-slate-400">Bulk add from file</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-200">Import CSV</p>
+                <p className="text-sm text-slate-400 dark:text-slate-500">Bulk add from file</p>
               </div>
             </button>
           </div>
@@ -298,14 +292,14 @@ export function Dashboard({
           {dueCount > 0 && (
             <button
               onClick={onStartReview}
-              className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 transition-all shadow-sm"
+              className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 transition-all shadow-sm"
             >
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
                 <Rocket className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
                 <p className="font-semibold text-white">Start Review</p>
-                <p className="text-sm text-teal-50">{dueCount} card{dueCount !== 1 ? 's' : ''} ready</p>
+                <p className="text-sm text-blue-100">{dueCount} card{dueCount !== 1 ? 's' : ''} ready</p>
               </div>
             </button>
           )}
@@ -327,16 +321,16 @@ export function Dashboard({
 
           <button
             onClick={onSetExamDate}
-            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-white border border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all group"
+            className="w-full flex items-center gap-3 px-5 py-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-slate-700 transition-all group"
           >
-            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-teal-100 transition-colors">
-              <Calendar className="w-5 h-5 text-slate-600 group-hover:text-teal-600 transition-colors" />
+            <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-700 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-slate-600 transition-colors">
+              <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             </div>
             <div className="text-left">
-              <p className="font-semibold text-slate-700">
+              <p className="font-semibold text-slate-700 dark:text-slate-200">
                 {deck.examDate ? 'Change Exam Date' : 'Set Exam Date'}
               </p>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-400 dark:text-slate-500">
                 {deck.examDate ? 'Adjust your study schedule' : 'Schedule cards to finish before your test'}
               </p>
             </div>
@@ -347,7 +341,7 @@ export function Dashboard({
         {totalCount > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Cards in this deck
               </h3>
               <div className="flex items-center gap-2">
@@ -355,16 +349,16 @@ export function Dashboard({
                   <div className="relative">
                     <button
                       onClick={() => setFilterTag(filterTag ? null : allTags[0])}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <Filter className="w-3.5 h-3.5" />
                       {filterTag || 'All tags'}
                     </button>
                     {filterTag && allTags.length > 1 && (
-                      <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[120px]">
+                      <div className="absolute right-0 top-8 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 min-w-[120px]">
                         <button
                           onClick={() => setFilterTag(null)}
-                          className="w-full text-left px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                          className="w-full text-left px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                         >
                           All tags
                         </button>
@@ -372,8 +366,8 @@ export function Dashboard({
                           <button
                             key={tag}
                             onClick={() => setFilterTag(tag)}
-                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 ${
-                              filterTag === tag ? 'text-teal-600 font-medium' : 'text-slate-600'
+                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 ${
+                              filterTag === tag ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-slate-600 dark:text-slate-300'
                             }`}
                           >
                             {tag}
@@ -390,8 +384,8 @@ export function Dashboard({
                   }}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                     reorderMode
-                      ? 'bg-teal-50 text-teal-600'
-                      : 'text-slate-500 hover:bg-slate-100'
+                      ? 'bg-blue-50 text-blue-600 dark:bg-slate-700 dark:text-blue-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   <GripVertical className="w-3.5 h-3.5" />
@@ -402,40 +396,40 @@ export function Dashboard({
 
             {/* Bulk action bar */}
             {selectedIds.size > 0 && !reorderMode && (
-              <div className="sticky top-0 z-10 flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-4 py-2.5 mb-2 shadow-sm animate-[fadeIn_0.2s_ease]">
-                <span className="text-sm font-medium text-slate-600">{selectedIds.size} selected</span>
+              <div className="sticky top-0 z-10 flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 mb-2 shadow-sm animate-[fadeIn_0.2s_ease]">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{selectedIds.size} selected</span>
                 <div className="flex-1" />
                 <button
                   onClick={() => setShowBulkMenu(!showBulkMenu)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   Actions
                 </button>
                 <button
                   onClick={clearSelection}
-                  className="p-1 rounded text-slate-400 hover:bg-slate-100"
+                  className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   <X className="w-4 h-4" />
                 </button>
                 {showBulkMenu && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setShowBulkMenu(false)} />
-                    <div className="absolute right-4 top-12 z-20 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[180px]">
+                    <div className="absolute right-4 top-12 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 min-w-[180px]">
                       <button
                         onClick={() => { onBulkDelete(selectedArray); clearSelection(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete Cards
                       </button>
                       <button
                         onClick={() => { setBulkMoveTarget(true); setShowBulkMenu(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                       >
                         <ArrowRight className="w-3.5 h-3.5" /> Move to Deck...
                       </button>
                       <button
                         onClick={() => { onBulkReset(selectedArray); clearSelection(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                       >
                         <RotateCcw className="w-3.5 h-3.5" /> Reset History
                       </button>
@@ -448,8 +442,8 @@ export function Dashboard({
             {/* Bulk move target picker */}
             {bulkMoveTarget && (
               <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-                <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
-                  <h3 className="font-semibold text-slate-800 mb-3">Move {selectedIds.size} cards to:</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3">Move {selectedIds.size} cards to:</h3>
                   <div className="space-y-1 max-h-60 overflow-y-auto">
                     {allDecks.filter((d) => d.id !== deck.id).map((d) => (
                       <button
@@ -459,7 +453,7 @@ export function Dashboard({
                           clearSelection();
                           setBulkMoveTarget(false);
                         }}
-                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50"
+                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                       >
                         {d.name}
                       </button>
@@ -467,7 +461,7 @@ export function Dashboard({
                   </div>
                   <button
                     onClick={() => setBulkMoveTarget(false)}
-                    className="mt-3 w-full px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium"
+                    className="mt-3 w-full px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium"
                   >
                     Cancel
                   </button>
@@ -475,14 +469,14 @@ export function Dashboard({
               </div>
             )}
 
-            {/* Select all checkbox (when not in reorder mode) */}
+            {/* Select all checkbox */}
             {!reorderMode && filteredCards.length > 0 && (
               <button
                 onClick={toggleSelectAll}
-                className="flex items-center gap-2 mb-2 text-xs text-slate-400 hover:text-slate-600"
+                className="flex items-center gap-2 mb-2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
               >
                 {selectedIds.size === filteredCards.length && selectedIds.size > 0
-                  ? <CheckSquare className="w-3.5 h-3.5 text-teal-500" />
+                  ? <CheckSquare className="w-3.5 h-3.5 text-blue-500" />
                   : <Square className="w-3.5 h-3.5" />
                 }
                 {selectedIds.size === filteredCards.length && selectedIds.size > 0 ? 'Deselect all' : 'Select all'}
@@ -497,46 +491,44 @@ export function Dashboard({
                   onDragStart={() => handleDragStart(card.id)}
                   onDragOver={(e) => handleDragOver(e, card.id)}
                   onDrop={() => handleDrop(card.id)}
-                  className={`group flex items-center gap-3 bg-white rounded-xl border px-4 py-3 transition-all ${
+                  className={`group flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl border px-4 py-3 transition-all ${
                     reorderMode ? 'cursor-grab active:cursor-grabbing' : ''
                   } ${
-                    draggedCardId === card.id ? 'opacity-40 border-teal-300' : 'border-slate-200 hover:border-slate-300'
-                  } ${selectedIds.has(card.id) ? 'border-teal-300 bg-teal-50/30' : ''}`}
+                    draggedCardId === card.id ? 'opacity-40 border-blue-300 dark:border-blue-600' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  } ${selectedIds.has(card.id) ? 'border-blue-300 dark:border-blue-600 bg-blue-50/30 dark:bg-slate-700' : ''}`}
                 >
                   {reorderMode ? (
-                    <GripVertical className="w-4 h-4 text-slate-300 shrink-0" />
+                    <GripVertical className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
                   ) : (
                     <button
                       onClick={() => toggleSelect(card.id)}
                       className="shrink-0"
                     >
                       {selectedIds.has(card.id)
-                        ? <CheckSquare className="w-4 h-4 text-teal-500" />
-                        : <Square className="w-4 h-4 text-slate-300 hover:text-slate-400" />
+                        ? <CheckSquare className="w-4 h-4 text-blue-500" />
+                        : <Square className="w-4 h-4 text-slate-300 dark:text-slate-600 hover:text-slate-400" />
                       }
                     </button>
                   )}
 
                   <div className="flex-1 min-w-0">
                     {card.cardType && card.cardType !== 'basic' && (
-                      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full mb-0.5 font-medium ${
-                        card.cardType === 'cloze' ? 'bg-indigo-50 text-indigo-500' : 'bg-amber-50 text-amber-600'
-                      }`}>
-                        {card.cardType === 'cloze' ? 'Cloze' : 'Occlusion'}
+                      <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full mb-0.5 font-medium bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                        Occlusion
                       </span>
                     )}
                     <MathRenderer
                       text={card.frontText || (card.frontImage ? '(image only)' : 'Untitled')}
-                      className="text-sm font-medium text-slate-700 truncate"
+                      className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate"
                     />
                     <MathRenderer
                       text={card.backText || (card.backImage ? '(image only)' : 'No answer')}
-                      className="text-xs text-slate-400 truncate"
+                      className="text-xs text-slate-400 dark:text-slate-500 truncate"
                     />
                     {card.tags.length > 0 && (
                       <div className="flex gap-1 mt-1">
                         {card.tags.map((tag, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">
                             {tag}
                           </span>
                         ))}
@@ -547,10 +539,10 @@ export function Dashboard({
                   {(card.frontImage || card.backImage) && (
                     <div className="flex gap-1 shrink-0">
                       {card.frontImage && (
-                        <img src={card.frontImage} alt="" className="w-8 h-8 object-cover rounded border border-slate-200" />
+                        <img src={card.frontImage} alt="" className="w-8 h-8 object-cover rounded border border-slate-200 dark:border-slate-700" />
                       )}
                       {card.backImage && (
-                        <img src={card.backImage} alt="" className="w-8 h-8 object-cover rounded border border-slate-200" />
+                        <img src={card.backImage} alt="" className="w-8 h-8 object-cover rounded border border-slate-200 dark:border-slate-700" />
                       )}
                     </div>
                   )}
@@ -559,13 +551,13 @@ export function Dashboard({
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => setEditingCard(card)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setConfirmDeleteCard(card)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500"
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -579,10 +571,10 @@ export function Dashboard({
 
         {totalCount === 0 && (
           <div className="mt-12 text-center py-12">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-              <Layers className="w-8 h-8 text-slate-300" />
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+              <Layers className="w-8 h-8 text-slate-300 dark:text-slate-600" />
             </div>
-            <p className="text-slate-400">This deck is empty. Add your first card to get started.</p>
+            <p className="text-slate-400 dark:text-slate-500">This deck is empty. Add your first card to get started.</p>
           </div>
         )}
       </div>
@@ -590,18 +582,18 @@ export function Dashboard({
       {/* Confirm Reset Modal */}
       {confirmReset && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm mx-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
                 <RotateCcw className="w-5 h-5 text-amber-500" />
               </div>
-              <h3 className="font-semibold text-slate-800">Reset Deck History?</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100">Reset Deck History?</h3>
             </div>
-            <p className="text-sm text-slate-500 mb-5">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
               This will wipe all scheduling progress for "{deck.name}" and treat every card as new. Your cards will not be deleted.
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmReset(false)} className="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium">Cancel</button>
+              <button onClick={() => setConfirmReset(false)} className="px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium">Cancel</button>
               <button onClick={() => { onResetHistory(); setConfirmReset(false); }} className="px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-medium">Reset</button>
             </div>
           </div>
@@ -611,18 +603,18 @@ export function Dashboard({
       {/* Confirm Delete Deck */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm mx-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="font-semibold text-slate-800">Delete Deck?</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100">Delete Deck?</h3>
             </div>
-            <p className="text-sm text-slate-500 mb-5">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
               This will permanently delete "{deck.name}" and all {totalCount} cards inside it.
             </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium">Cancel</button>
+              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium">Cancel</button>
               <button onClick={onDeleteDeck} className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 text-sm font-medium">Delete</button>
             </div>
           </div>
@@ -632,16 +624,16 @@ export function Dashboard({
       {/* Confirm Delete Card */}
       {confirmDeleteCard && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm mx-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="font-semibold text-slate-800">Delete Card?</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100">Delete Card?</h3>
             </div>
-            <p className="text-sm text-slate-500 mb-5">This will permanently delete this card.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">This will permanently delete this card.</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDeleteCard(null)} className="px-4 py-2 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium">Cancel</button>
+              <button onClick={() => setConfirmDeleteCard(null)} className="px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium">Cancel</button>
               <button onClick={() => { onDeleteCard(confirmDeleteCard.id); setConfirmDeleteCard(null); }} className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 text-sm font-medium">Delete</button>
             </div>
           </div>

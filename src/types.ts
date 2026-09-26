@@ -6,7 +6,7 @@ export interface Deck {
   finalReviewHours: number;
 }
 
-export type CardType = 'basic' | 'cloze' | 'occlusion';
+export type CardType = 'basic' | 'occlusion';
 
 export interface MaskRect {
   x: number;

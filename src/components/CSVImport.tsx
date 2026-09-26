@@ -45,19 +45,19 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
   const previewRows = parsedRows.slice(0, 5);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
+    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
       <div className="max-w-3xl mx-auto px-8 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={onBack}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 dark:text-slate-500 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Import Cards</h2>
-            <p className="text-sm text-slate-400">to {deckName}</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Import Cards</h2>
+            <p className="text-sm text-slate-400 dark:text-slate-500">to {deckName}</p>
           </div>
         </div>
 
@@ -70,10 +70,10 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
           }}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileRef.current?.click()}
-          className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-8 text-center cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all mb-4"
+          className="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 text-center cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all mb-4"
         >
-          <Upload className="w-7 h-7 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm text-slate-400">
+          <Upload className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-400 dark:text-slate-500">
             {fileName ? `Loaded: ${fileName}` : 'Drop a .csv or .txt file here, or click to browse'}
           </p>
           <input
@@ -90,7 +90,7 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
 
         {/* Or paste text */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-600 mb-1.5">
+          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">
             Or paste text directly
           </label>
           <textarea
@@ -98,17 +98,17 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
             onChange={(e) => setRawText(e.target.value)}
             placeholder={'front,back\nWhat is 2+2?,4\nCapital of France?,Paris'}
             rows={5}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none font-mono"
+            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none font-mono"
           />
         </div>
 
         {/* Delimiter */}
         <div className="flex items-center gap-3 mb-4">
-          <label className="text-sm font-medium text-slate-600">Delimiter:</label>
+          <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Delimiter:</label>
           <select
             value={delimiter}
             onChange={(e) => setDelimiter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-teal-400"
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400"
           >
             <option value=",">Comma (,)</option>
             <option value="tab">Tab</option>
@@ -119,28 +119,28 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
 
         {/* Column mapping */}
         {maxCols > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-            <h3 className="text-sm font-semibold text-slate-600 mb-3">Map Columns</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-4">
+            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">Map Columns</h3>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <label className="block text-xs text-slate-400 mb-1">Front Text</label>
+                <label className="block text-xs text-slate-400 dark:text-slate-500 mb-1">Front Text</label>
                 <select
                   value={frontCol}
                   onChange={(e) => setFrontCol(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:border-teal-400"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400"
                 >
                   {Array.from({ length: maxCols }, (_, i) => (
                     <option key={i} value={i}>Column {i + 1}</option>
                   ))}
                 </select>
               </div>
-              <ArrowRight className="w-5 h-5 text-slate-300 mt-5" />
+              <ArrowRight className="w-5 h-5 text-slate-300 dark:text-slate-600 mt-5" />
               <div className="flex-1">
-                <label className="block text-xs text-slate-400 mb-1">Back Text</label>
+                <label className="block text-xs text-slate-400 dark:text-slate-500 mb-1">Back Text</label>
                 <select
                   value={backCol}
                   onChange={(e) => setBackCol(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:border-teal-400"
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400"
                 >
                   {Array.from({ length: maxCols }, (_, i) => (
                     <option key={i} value={i}>Column {i + 1}</option>
@@ -153,20 +153,20 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
 
         {/* Preview */}
         {previewRows.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-5 mb-4">
-            <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-4">
+            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-1.5">
               <FileText className="w-4 h-4" />
               Preview ({parsedRows.length} rows)
             </h3>
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
               {previewRows.map((row, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm py-1 border-b border-slate-50 last:border-0">
-                  <span className="text-xs text-slate-400 w-6">{i + 1}</span>
-                  <span className="flex-1 text-slate-700 truncate">
+                <div key={i} className="flex items-center gap-3 text-sm py-1 border-b border-slate-50 dark:border-slate-700 last:border-0">
+                  <span className="text-xs text-slate-400 dark:text-slate-500 w-6">{i + 1}</span>
+                  <span className="flex-1 text-slate-700 dark:text-slate-200 truncate">
                     {(row[frontCol] || '').replace(/^"|"$/g, '') || '(empty)'}
                   </span>
-                  <ArrowRight className="w-3 h-3 text-slate-300" />
-                  <span className="flex-1 text-slate-500 truncate">
+                  <ArrowRight className="w-3 h-3 text-slate-300 dark:text-slate-600" />
+                  <span className="flex-1 text-slate-500 dark:text-slate-400 truncate">
                     {(row[backCol] || '').replace(/^"|"$/g, '') || '(empty)'}
                   </span>
                 </div>
@@ -179,7 +179,7 @@ export function CSVImport({ deckName, onImport, onBack }: CSVImportProps) {
         {parsedRows.length > 0 && (
           <button
             onClick={handleImport}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
           >
             <Upload className="w-4 h-4" />
             Import {parsedRows.length} Card{parsedRows.length !== 1 ? 's' : ''}

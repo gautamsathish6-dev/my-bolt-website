@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useStore } from './useStore';
+import { useTheme } from './useTheme';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { CardBuilder } from './components/CardBuilder';
@@ -7,12 +8,13 @@ import { ReviewSession } from './components/ReviewSession';
 import { ExamDateModal } from './components/ExamDateModal';
 import { CSVImport } from './components/CSVImport';
 import { Card, Rating, CardType, MaskRect } from './types';
-import { isCardDue, scheduleCard } from './fsrs';
+import { isCardDue } from './fsrs';
 
 type View = 'dashboard' | 'builder' | 'review' | 'finalReview' | 'csvImport';
 
 function App() {
   const store = useStore();
+  const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState<View>('dashboard');
   const [showExamModal, setShowExamModal] = useState(false);
 
@@ -89,18 +91,20 @@ function App() {
 
   if (store.loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-50">
+    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
       <Sidebar
         decks={store.decks}
         activeDeckId={store.activeDeckId}
         cardCounts={cardCounts}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onSelect={(id) => { store.setActiveDeckId(id); setView('dashboard'); }}
         onCreate={store.createDeck}
         onRename={store.renameDeck}
@@ -199,13 +203,13 @@ function App() {
       )}
 
       {!store.activeDeck && (
-        <div className="flex-1 flex items-center justify-center bg-slate-50">
+        <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
           <div className="text-center max-w-sm px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center mb-4">
               <span className="text-2xl">📚</span>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Welcome to OmniDeck</h2>
-            <p className="text-slate-500 text-sm">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Welcome to OmniDeck</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
               Create your first deck from the sidebar to start building flashcards with smart spaced repetition.
             </p>
           </div>

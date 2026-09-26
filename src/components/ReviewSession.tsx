@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, CheckCircle, Keyboard, Eye } from 'lucide-react';
+import { ArrowLeft, CircleCheck as CheckCircle, Keyboard, Eye } from 'lucide-react';
 import { Card, Rating } from '../types';
 import { scheduleCard } from '../fsrs';
 import { MathRenderer } from './MathRenderer';
@@ -13,18 +13,8 @@ interface ReviewSessionProps {
   onBack: () => void;
 }
 
-function renderCloze(text: string, reveal: boolean): string {
-  if (!text) return '';
-  const clozeRegex = /\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}/g;
-  return text.replace(clozeRegex, (_, num, hidden, hint) => {
-    if (reveal) return `<span class="px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-medium">${hidden}</span>`;
-    if (hint) return `<span class="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-mono text-sm">[${hint}]</span>`;
-    return `<span class="inline-block px-2 py-0.5 rounded bg-slate-200 text-slate-500 font-mono text-sm">[...]</span>`;
-  });
-}
-
 const MASK_COLORS = [
-  'rgb(20, 184, 166)',
+  'rgb(37, 99, 235)',
   'rgb(245, 158, 11)',
   'rgb(239, 68, 68)',
   'rgb(99, 102, 241)',
@@ -45,7 +35,6 @@ export function ReviewSession({
   const [reviewedCount, setReviewedCount] = useState(0);
   const [animState, setAnimState] = useState<'idle' | 'exit' | 'enter'>('idle');
   const [showHotkeys, setShowHotkeys] = useState(false);
-  // Occlusion sequential reveal state
   const [revealedMasks, setRevealedMasks] = useState<Set<number>>(new Set());
   const [allMasksRevealed, setAllMasksRevealed] = useState(false);
 
@@ -58,7 +47,6 @@ export function ReviewSession({
 
   const handleRate = useCallback((rating: Rating) => {
     if (!currentCard) return;
-    // For occlusion cards, require all masks revealed before rating
     if (currentCard.cardType === 'occlusion' && !allMasksRevealed) return;
     if (!flipped && currentCard.cardType !== 'occlusion') return;
     const now = Date.now();
@@ -82,7 +70,6 @@ export function ReviewSession({
     }, 250);
   }, [currentCard, flipped, isFinalReview, maxInterval, onRate, currentIndex, queue.length, allMasksRevealed, resetOcclusionState]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (completed) return;
@@ -99,7 +86,7 @@ export function ReviewSession({
         } else {
           setFlipped((f) => !f);
         }
-      } else if ((flipped || (currentCard?.cardType === 'occlusion' && allMasksRevealed)) && currentCard?.cardType !== 'occlusion') {
+      } else if (flipped && currentCard?.cardType !== 'occlusion') {
         if (e.key === '1') { e.preventDefault(); handleRate('Again'); }
         else if (e.key === '2') { e.preventDefault(); handleRate('Hard'); }
         else if (e.key === '3') { e.preventDefault(); handleRate('Good'); }
@@ -117,18 +104,18 @@ export function ReviewSession({
 
   if (completed) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50">
+      <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="text-center">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-teal-50 flex items-center justify-center mb-5">
-            <CheckCircle className="w-10 h-10 text-teal-500" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center mb-5">
+            <CheckCircle className="w-10 h-10 text-blue-500 dark:text-blue-400" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">All Done!</h2>
-          <p className="text-slate-500 mb-6">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">All Done!</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
             You reviewed {reviewedCount} card{reviewedCount !== 1 ? 's' : ''} in {deckName}
           </p>
           <button
             onClick={onBack}
-            className="px-6 py-3 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
+            className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
           >
             Back to Deck
           </button>
@@ -139,12 +126,12 @@ export function ReviewSession({
 
   if (!currentCard) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50">
+      <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="text-center">
-          <p className="text-slate-500 mb-4">No cards to review.</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-4">No cards to review.</p>
           <button
             onClick={onBack}
-            className="px-6 py-3 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
+            className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
           >
             Back to Deck
           </button>
@@ -175,24 +162,12 @@ export function ReviewSession({
   };
 
   const renderCardFront = () => {
-    if (currentCard.cardType === 'cloze') {
-      return (
-        <div className="text-center">
-          <MathRenderer
-            text={renderCloze(currentCard.frontText, false)}
-            className="text-xl font-medium text-slate-800 leading-relaxed"
-          />
-        </div>
-      );
-    }
-
     if (isOcclusion) {
       return (
         <div className="flex flex-col items-center">
           {currentCard.frontImage ? (
             <div className="relative inline-block">
               <img src={currentCard.frontImage} alt="Card front" className="max-h-56 object-contain rounded-lg" />
-              {/* Masks: opaque when not flipped, individually removable when flipped */}
               {currentCard.masks.map((mask, i) => {
                 if (flipped && revealedMasks.has(i)) return null;
                 return (
@@ -220,13 +195,13 @@ export function ReviewSession({
               })}
             </div>
           ) : (
-            <p className="text-slate-400 italic">No image on this card</p>
+            <p className="text-slate-400 dark:text-slate-500 italic">No image on this card</p>
           )}
           {currentCard.frontText && (
             <div className="text-center mt-4">
               <MathRenderer
                 text={currentCard.frontText}
-                className="text-base font-medium text-slate-600"
+                className="text-base font-medium text-slate-600 dark:text-slate-300"
               />
             </div>
           )}
@@ -245,7 +220,7 @@ export function ReviewSession({
         <div className="text-center">
           <MathRenderer
             text={currentCard.frontText}
-            className="text-xl font-medium text-slate-800 leading-relaxed"
+            className="text-xl font-medium text-slate-800 dark:text-slate-100 leading-relaxed"
           />
         </div>
       </>
@@ -253,39 +228,13 @@ export function ReviewSession({
   };
 
   const renderCardBack = () => {
-    if (currentCard.cardType === 'cloze') {
-      return (
-        <div className="mt-6 pt-6 border-t border-slate-100 text-center animate-[fadeIn_0.3s_ease]">
-          <MathRenderer
-            text={renderCloze(currentCard.frontText, true)}
-            className="text-lg font-medium text-slate-800 leading-relaxed"
-          />
-          {(currentCard.backText || currentCard.backImage) && (
-            <div className="mt-4">
-              {currentCard.backImage && (
-                <div className="mb-3 flex justify-center">
-                  <img src={currentCard.backImage} alt="Card back" className="max-h-48 object-contain rounded-lg" />
-                </div>
-              )}
-              {currentCard.backText && (
-                <MathRenderer
-                  text={currentCard.backText}
-                  className="text-base text-slate-600 leading-relaxed"
-                />
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-
     if (isOcclusion) {
       return (
-        <div className="mt-6 pt-6 border-t border-slate-100 text-center animate-[fadeIn_0.3s_ease]">
+        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 text-center animate-[fadeIn_0.3s_ease]">
           {currentCard.backText && (
             <MathRenderer
               text={currentCard.backText}
-              className="text-base text-slate-600 leading-relaxed"
+              className="text-base text-slate-600 dark:text-slate-300 leading-relaxed"
             />
           )}
         </div>
@@ -294,7 +243,7 @@ export function ReviewSession({
 
     // Basic
     return (
-      <div className="mt-6 pt-6 border-t border-slate-100 text-center animate-[fadeIn_0.3s_ease]">
+      <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 text-center animate-[fadeIn_0.3s_ease]">
         {currentCard.backImage && (
           <div className="mb-4 flex justify-center">
             <img src={currentCard.backImage} alt="Card back" className="max-h-56 object-contain rounded-lg" />
@@ -302,7 +251,7 @@ export function ReviewSession({
         )}
         <MathRenderer
           text={currentCard.backText}
-          className="text-base text-slate-600 leading-relaxed"
+          className="text-base text-slate-600 dark:text-slate-300 leading-relaxed"
         />
       </div>
     );
@@ -311,30 +260,30 @@ export function ReviewSession({
   const showRatingButtons = isOcclusion ? allMasksRevealed : flipped;
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 relative">
+    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 relative">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white">
+      <div className="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <button
           onClick={onBack}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-500 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 max-w-xs mx-4">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-1">
             <span>{isFinalReview ? 'Final Review' : 'Review'}</span>
             <span>{currentIndex + 1} / {queue.length}</span>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-teal-500 rounded-full transition-all duration-300"
+              className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
         <button
           onClick={() => setShowHotkeys(!showHotkeys)}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-500 transition-colors"
         >
           <Keyboard className="w-5 h-5" />
         </button>
@@ -342,38 +291,38 @@ export function ReviewSession({
 
       {/* Hotkey Guide */}
       {showHotkeys && (
-        <div className="absolute top-16 right-4 z-20 bg-white rounded-lg shadow-lg border border-slate-200 p-4 text-sm space-y-1.5 animate-[fadeIn_0.2s_ease]">
+        <div className="absolute top-16 right-4 z-20 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-4 text-sm space-y-1.5 animate-[fadeIn_0.2s_ease]">
           {isOcclusion ? (
             <>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-500">Reveal masks</span>
-                <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">Space</kbd>
+                <span className="text-slate-500 dark:text-slate-400">Reveal masks</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">Space</kbd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-500">Click individual masks to reveal</span>
+                <span className="text-slate-500 dark:text-slate-400">Click individual masks to reveal</span>
               </div>
             </>
           ) : (
             <div className="flex items-center justify-between gap-4">
-              <span className="text-slate-500">Flip card</span>
-              <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">Space / Enter</kbd>
+              <span className="text-slate-500 dark:text-slate-400">Flip card</span>
+              <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">Space / Enter</kbd>
             </div>
           )}
           <div className="flex items-center justify-between gap-4">
-            <span className="text-red-500">Forgot</span>
-            <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">1</kbd>
+            <span className="text-red-500 dark:text-red-400">Forgot</span>
+            <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">1</kbd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-amber-500">Hard</span>
-            <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">2</kbd>
+            <span className="text-amber-500 dark:text-amber-400">Hard</span>
+            <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">2</kbd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-teal-500">Good</span>
-            <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">3</kbd>
+            <span className="text-blue-500 dark:text-blue-400">Good</span>
+            <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">3</kbd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-emerald-500">Easy</span>
-            <kbd className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">4</kbd>
+            <span className="text-emerald-500 dark:text-emerald-400">Easy</span>
+            <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-mono text-slate-600 dark:text-slate-300">4</kbd>
           </div>
         </div>
       )}
@@ -382,7 +331,7 @@ export function ReviewSession({
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
         <div
           key={cardKey}
-          className={`w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-slate-200 p-8 min-h-[320px] flex flex-col justify-center transition-all duration-250 ${
+          className={`w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 min-h-[320px] flex flex-col justify-center transition-all duration-250 ${
             animState === 'exit'
               ? 'opacity-0 -translate-x-8'
               : animState === 'enter'
@@ -392,14 +341,12 @@ export function ReviewSession({
         >
           {renderCardFront()}
 
-          {/* Back content (revealed on flip) */}
           {flipped && renderCardBack()}
 
-          {/* Tags */}
           {currentCard.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5 justify-center">
               {currentCard.tags.map((tag, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
+                <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">
                   {tag}
                 </span>
               ))}
@@ -413,20 +360,20 @@ export function ReviewSession({
             !flipped ? (
               <button
                 onClick={() => setFlipped(true)}
-                className="w-full py-4 rounded-xl bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-xl bg-slate-800 dark:bg-slate-700 text-white font-medium hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
               >
                 <Eye className="w-5 h-5" />
                 Reveal Mask
-                <span className="text-slate-400 text-sm ml-2">(Space)</span>
+                <span className="text-slate-400 dark:text-slate-500 text-sm ml-2">(Space)</span>
               </button>
             ) : !allMasksRevealed ? (
               <div className="space-y-2">
-                <p className="text-center text-sm text-slate-500">
+                <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                   Click on each mask to reveal it, or reveal all at once.
                 </p>
                 <button
                   onClick={handleRevealAll}
-                  className="w-full py-3 rounded-xl bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-slate-800 dark:bg-slate-700 text-white font-medium hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
                   Reveal All ({currentCard.masks.length - revealedMasks.size} remaining)
@@ -436,35 +383,35 @@ export function ReviewSession({
               <div className="grid grid-cols-4 gap-2 animate-[fadeIn_0.2s_ease]">
                 <button
                   onClick={() => handleRate('Again')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                 >
                   <span className="text-lg">X</span>
                   <span className="text-sm font-medium">Forgot</span>
-                  <kbd className="text-[10px] text-red-300">1</kbd>
+                  <kbd className="text-[10px] text-red-300 dark:text-red-500">1</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Hard')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
                 >
                   <span className="text-lg">?</span>
                   <span className="text-sm font-medium">Hard</span>
-                  <kbd className="text-[10px] text-amber-300">2</kbd>
+                  <kbd className="text-[10px] text-amber-300 dark:text-amber-500">2</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Good')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   <span className="text-lg">V</span>
                   <span className="text-sm font-medium">Good</span>
-                  <kbd className="text-[10px] text-teal-300">3</kbd>
+                  <kbd className="text-[10px] text-blue-300 dark:text-blue-500">3</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Easy')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                 >
                   <span className="text-lg">!</span>
                   <span className="text-sm font-medium">Easy</span>
-                  <kbd className="text-[10px] text-emerald-300">4</kbd>
+                  <kbd className="text-[10px] text-emerald-300 dark:text-emerald-500">4</kbd>
                 </button>
               </div>
             )
@@ -472,44 +419,44 @@ export function ReviewSession({
             !flipped ? (
               <button
                 onClick={() => setFlipped(true)}
-                className="w-full py-4 rounded-xl bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors"
+                className="w-full py-4 rounded-xl bg-slate-800 dark:bg-slate-700 text-white font-medium hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
               >
                 Flip Card
-                <span className="text-slate-400 text-sm ml-2">(Space / Enter)</span>
+                <span className="text-slate-400 dark:text-slate-500 text-sm ml-2">(Space / Enter)</span>
               </button>
             ) : (
               <div className="grid grid-cols-4 gap-2 animate-[fadeIn_0.2s_ease]">
                 <button
                   onClick={() => handleRate('Again')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                 >
                   <span className="text-lg">X</span>
                   <span className="text-sm font-medium">Forgot</span>
-                  <kbd className="text-[10px] text-red-300">1</kbd>
+                  <kbd className="text-[10px] text-red-300 dark:text-red-500">1</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Hard')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
                 >
                   <span className="text-lg">?</span>
                   <span className="text-sm font-medium">Hard</span>
-                  <kbd className="text-[10px] text-amber-300">2</kbd>
+                  <kbd className="text-[10px] text-amber-300 dark:text-amber-500">2</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Good')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   <span className="text-lg">V</span>
                   <span className="text-sm font-medium">Good</span>
-                  <kbd className="text-[10px] text-teal-300">3</kbd>
+                  <kbd className="text-[10px] text-blue-300 dark:text-blue-500">3</kbd>
                 </button>
                 <button
                   onClick={() => handleRate('Easy')}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                 >
                   <span className="text-lg">!</span>
                   <span className="text-sm font-medium">Easy</span>
-                  <kbd className="text-[10px] text-emerald-300">4</kbd>
+                  <kbd className="text-[10px] text-emerald-300 dark:text-emerald-500">4</kbd>
                 </button>
               </div>
             )

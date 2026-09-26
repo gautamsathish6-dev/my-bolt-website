@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ArrowLeft, ImagePlus, X, Save, Eye, Bold, Italic, Code, Tag, BoxSelect, Layers3, FileText } from 'lucide-react';
+import { ArrowLeft, ImagePlus, X, Save, Eye, Bold, Italic, Code, Tag, BoxSelect, FileText } from 'lucide-react';
 import { resizeImage } from '../imageUtils';
 import { MathRenderer } from './MathRenderer';
 import { MaskEditor } from './MaskEditor';
@@ -29,7 +29,9 @@ function loadDraft(): DraftState | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as DraftState;
+    const draft = JSON.parse(raw) as DraftState;
+    if (draft.cardType === 'cloze') draft.cardType = 'basic';
+    return draft;
   } catch {
     return null;
   }
@@ -49,8 +51,14 @@ function clearDraft() {
 
 const CARD_TYPES: { value: CardType; label: string; icon: typeof FileText; desc: string }[] = [
   { value: 'basic', label: 'Basic', icon: FileText, desc: 'Standard front/back flashcard' },
-  { value: 'cloze', label: 'Cloze Deletion', icon: Layers3, desc: 'Fill-in-the-blank with {{c1::...}} syntax' },
   { value: 'occlusion', label: 'Image Occlusion', icon: BoxSelect, desc: 'Hide parts of an image with masks' },
+];
+
+const MASK_COLORS = [
+  'rgb(37, 99, 235)',
+  'rgb(245, 158, 11)',
+  'rgb(239, 68, 68)',
+  'rgb(99, 102, 241)',
 ];
 
 export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
@@ -94,7 +102,6 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
     if (file) handleImageFile(file, slot);
   }, [handleImageFile]);
 
-  // Global paste listener
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       if (!e.clipboardData) return;
@@ -114,7 +121,6 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
     return () => window.removeEventListener('paste', handlePaste);
   }, [activeSlot, handleImageFile]);
 
-  // Immediate auto-save draft (debounced 500ms)
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (frontText || backText || frontImage || backImage || tagsInput || masks.length > 0) {
@@ -126,7 +132,6 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
     return () => clearTimeout(timeout);
   }, [frontText, backText, frontImage, backImage, tagsInput, cardType, masks]);
 
-  // Save draft on unmount / page close
   useEffect(() => {
     const handler = () => {
       if (frontText || backText || frontImage || backImage || tagsInput || masks.length > 0) {
@@ -153,20 +158,6 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
     });
   };
 
-  const insertCloze = () => {
-    const ref = frontTextRef.current;
-    if (!ref) return;
-    const start = ref.selectionStart;
-    const end = ref.selectionEnd;
-    const selected = frontText.substring(start, end) || 'hidden text';
-    const newText = frontText.substring(0, start) + `{{c1::${selected}}}` + frontText.substring(end);
-    setFrontText(newText);
-    requestAnimationFrame(() => {
-      ref.focus();
-      ref.setSelectionRange(start + 6, start + 6 + selected.length);
-    });
-  };
-
   const handleSave = () => {
     if (!frontText.trim() && !backText.trim() && !frontImage && !backImage) return;
     const tags = tagsInput.split(',').map((t) => t.trim()).filter(Boolean);
@@ -189,9 +180,9 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
 
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-600 mb-1.5">{label} (optional)</label>
+        <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{label} (optional)</label>
         {image ? (
-          <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <img src={image} alt={`${slot} preview`} className="w-full max-h-48 object-contain" />
             <button
               onClick={() => setImageForSlot(slot, null)}
@@ -203,7 +194,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
               <div className="absolute top-2 left-2 flex gap-1.5">
                 <button
                   onClick={() => setShowMaskEditor(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-500/90 hover:bg-teal-600 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-700 text-white text-xs font-medium transition-colors backdrop-blur-sm"
                 >
                   <BoxSelect className="w-3.5 h-3.5" />
                   {masks.length > 0 ? `Edit Masks (${masks.length})` : 'Mask Image'}
@@ -221,7 +212,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                       top: `${mask.y * 100}%`,
                       width: `${mask.w * 100}%`,
                       height: `${mask.h * 100}%`,
-                      backgroundColor: ['rgb(20, 184, 166)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)', 'rgb(99, 102, 241)'][i % 4],
+                      backgroundColor: MASK_COLORS[i % MASK_COLORS.length],
                     }}
                   />
                 ))}
@@ -243,18 +234,18 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
             onMouseEnter={() => setActiveSlot(slot)}
             className={`rounded-xl border-2 border-dashed p-5 text-center cursor-pointer transition-all ${
               dragOverSlot === slot
-                ? 'border-teal-400 bg-teal-50'
+                ? 'border-blue-400 bg-blue-50 dark:bg-slate-700'
                 : activeSlot === slot
-                ? 'border-teal-300 bg-teal-50/30'
-                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                ? 'border-blue-300 bg-blue-50/30 dark:bg-slate-700/50 dark:border-blue-600'
+                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
-            <ImagePlus className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
-            <p className="text-xs text-slate-400">
+            <ImagePlus className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Drag & drop, click, or paste
             </p>
             {activeSlot === slot && (
-              <p className="text-[10px] text-teal-500 mt-1 font-medium">Paste target active</p>
+              <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 font-medium">Paste target active</p>
             )}
             <input
               ref={fileRef}
@@ -278,7 +269,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => insertFormatting(field, '**')}
-        className="p-1 rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        className="p-1 rounded text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
         title="Bold (Ctrl+B)"
       >
         <Bold className="w-3.5 h-3.5" />
@@ -287,7 +278,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => insertFormatting(field, '*')}
-        className="p-1 rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        className="p-1 rounded text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
         title="Italic (Ctrl+I)"
       >
         <Italic className="w-3.5 h-3.5" />
@@ -296,70 +287,20 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => insertFormatting(field, '`')}
-        className="p-1 rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        className="p-1 rounded text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
         title="Inline code"
       >
         <Code className="w-3.5 h-3.5" />
       </button>
-      {cardType === 'cloze' && field === 'front' && (
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={insertCloze}
-          className="flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-xs font-medium text-teal-600 hover:bg-teal-50"
-          title="Insert cloze deletion"
-        >
-          <Layers3 className="w-3 h-3" />
-          Cloze
-        </button>
-      )}
     </div>
   );
 
   const renderPreview = () => {
-    if (cardType === 'cloze') {
-      const clozed = renderClozePreview(frontText, false);
-      const revealed = renderClozePreview(frontText, true);
-      return (
-        <>
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Front (cloze hidden)</p>
-            <MathRenderer
-              text={clozed || 'Type text with {{c1::hidden}} deletions...'}
-              className={`text-base ${clozed ? 'text-slate-700' : 'text-slate-300 italic'}`}
-            />
-            {frontImage && (
-              <img src={frontImage} alt="Front preview" className="mt-3 w-full max-h-40 object-contain rounded-lg" />
-            )}
-          </div>
-          <div className="border-t border-slate-100 pt-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Front (revealed)</p>
-            <MathRenderer
-              text={revealed || 'Type text with {{c1::hidden}} deletions...'}
-              className={`text-base ${revealed ? 'text-slate-700' : 'text-slate-300 italic'}`}
-            />
-          </div>
-          {(backText || backImage) && (
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Back (extra info)</p>
-              <MathRenderer
-                text={backText || 'Additional context...'}
-                className={`text-base ${backText ? 'text-slate-700' : 'text-slate-300 italic'}`}
-              />
-              {backImage && (
-                <img src={backImage} alt="Back preview" className="mt-3 w-full max-h-40 object-contain rounded-lg" />
-              )}
-            </div>
-          )}
-        </>
-      );
-    }
-
     if (cardType === 'occlusion') {
       return (
         <>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Front (masked)</p>
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Front (masked)</p>
             {frontImage ? (
               <div className="relative inline-block">
                 <img src={frontImage} alt="Front preview" className="w-full max-h-40 object-contain rounded-lg" />
@@ -372,29 +313,29 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                       top: `${mask.y * 100}%`,
                       width: `${mask.w * 100}%`,
                       height: `${mask.h * 100}%`,
-                      backgroundColor: ['rgb(20, 184, 166)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)', 'rgb(99, 102, 241)'][i % 4],
+                      backgroundColor: MASK_COLORS[i % MASK_COLORS.length],
                     }}
                   />
                 ))}
               </div>
             ) : (
-              <p className="text-slate-300 italic">Upload an image and add masks...</p>
+              <p className="text-slate-300 dark:text-slate-600 italic">Upload an image and add masks...</p>
             )}
           </div>
-          <div className="border-t border-slate-100 pt-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Front (revealed)</p>
+          <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Front (revealed)</p>
             {frontImage ? (
               <img src={frontImage} alt="Front revealed" className="w-full max-h-40 object-contain rounded-lg" />
             ) : (
-              <p className="text-slate-300 italic">Revealed view shows the unmasked image...</p>
+              <p className="text-slate-300 dark:text-slate-600 italic">Revealed view shows the unmasked image...</p>
             )}
           </div>
           {(backText || backImage) && (
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Back (extra info)</p>
+            <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Back (extra info)</p>
               <MathRenderer
                 text={backText || 'Additional context...'}
-                className={`text-base ${backText ? 'text-slate-700' : 'text-slate-300 italic'}`}
+                className={`text-base ${backText ? 'text-slate-700 dark:text-slate-200' : 'text-slate-300 dark:text-slate-600 italic'}`}
               />
               {backImage && (
                 <img src={backImage} alt="Back preview" className="mt-3 w-full max-h-40 object-contain rounded-lg" />
@@ -409,20 +350,20 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
     return (
       <>
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Front</p>
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Front</p>
           <MathRenderer
             text={frontText || 'Question or prompt...'}
-            className={`text-base ${frontText ? 'text-slate-700' : 'text-slate-300 italic'}`}
+            className={`text-base ${frontText ? 'text-slate-700 dark:text-slate-200' : 'text-slate-300 dark:text-slate-600 italic'}`}
           />
           {frontImage && (
             <img src={frontImage} alt="Front preview" className="mt-3 w-full max-h-40 object-contain rounded-lg" />
           )}
         </div>
-        <div className="border-t border-slate-100 pt-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Back</p>
+        <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Back</p>
           <MathRenderer
             text={backText || 'Answer or explanation...'}
-            className={`text-base ${backText ? 'text-slate-700' : 'text-slate-300 italic'}`}
+            className={`text-base ${backText ? 'text-slate-700 dark:text-slate-200' : 'text-slate-300 dark:text-slate-600 italic'}`}
           />
           {backImage && (
             <img src={backImage} alt="Back preview" className="mt-3 w-full max-h-40 object-contain rounded-lg" />
@@ -433,7 +374,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50">
+    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
       {showMaskEditor && frontImage && (
         <MaskEditor
           image={frontImage}
@@ -451,16 +392,16 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={onBack}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 dark:text-slate-500 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-slate-800">Add Cards</h2>
-            <p className="text-sm text-slate-400">to {deckName}</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Add Cards</h2>
+            <p className="text-sm text-slate-400 dark:text-slate-500">to {deckName}</p>
           </div>
           {savedIndicator && (
-            <span className="text-xs text-teal-500 font-medium animate-[fadeIn_0.3s_ease] flex items-center gap-1">
+            <span className="text-xs text-blue-500 dark:text-blue-400 font-medium animate-[fadeIn_0.3s_ease] flex items-center gap-1">
               <Save className="w-3 h-3" /> Draft saved
             </span>
           )}
@@ -468,8 +409,8 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
 
         {/* Card Type Selector */}
         <div className="mb-5">
-          <label className="block text-sm font-medium text-slate-600 mb-2">Card Type</label>
-          <div className="grid grid-cols-3 gap-2">
+          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Card Type</label>
+          <div className="grid grid-cols-2 gap-2">
             {CARD_TYPES.map((type) => {
               const Icon = type.icon;
               return (
@@ -478,8 +419,8 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                   onClick={() => setCardType(type.value)}
                   className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 transition-all ${
                     cardType === type.value
-                      ? 'border-teal-400 bg-teal-50 text-teal-700'
-                      : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                      ? 'border-blue-400 bg-blue-50 text-blue-700 dark:bg-slate-700 dark:text-blue-400 dark:border-blue-600'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -488,7 +429,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
               );
             })}
           </div>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
             {CARD_TYPES.find((t) => t.value === cardType)?.desc}
           </p>
         </div>
@@ -498,11 +439,10 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
           <div className="space-y-4">
             {cardType === 'occlusion' ? (
               <>
-                {/* Unified Occlusion Image Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Upload Occlusion Image</label>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Upload Occlusion Image</label>
                   {frontImage ? (
-                    <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white">
+                    <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                       <img src={frontImage} alt="Occlusion target" className="w-full max-h-64 object-contain" />
                       <button
                         onClick={() => setFrontImage(null)}
@@ -513,7 +453,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                       <div className="absolute top-2 left-2">
                         <button
                           onClick={() => setShowMaskEditor(true)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-500/90 hover:bg-teal-600 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-700 text-white text-xs font-medium transition-colors backdrop-blur-sm"
                         >
                           <BoxSelect className="w-3.5 h-3.5" />
                           {masks.length > 0 ? `Edit Masks (${masks.length})` : 'Mask Image'}
@@ -530,7 +470,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                                 top: `${mask.y * 100}%`,
                                 width: `${mask.w * 100}%`,
                                 height: `${mask.h * 100}%`,
-                                backgroundColor: ['rgb(20, 184, 166)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)', 'rgb(99, 102, 241)'][i % 4],
+                                backgroundColor: MASK_COLORS[i % MASK_COLORS.length],
                               }}
                             />
                           ))}
@@ -545,12 +485,12 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                       onClick={() => { setActiveSlot('front'); frontFileRef.current?.click(); }}
                       className={`rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all ${
                         dragOverSlot === 'front'
-                          ? 'border-teal-400 bg-teal-50'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-blue-400 bg-blue-50 dark:bg-slate-700'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                     >
-                      <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">Drag & drop, click, or paste an image</p>
+                      <ImagePlus className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm text-slate-400 dark:text-slate-500">Drag & drop, click, or paste an image</p>
                       <input
                         ref={frontFileRef}
                         type="file"
@@ -565,25 +505,22 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                   )}
                 </div>
 
-                {/* Optional Label */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Label / Hint (optional)</label>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Label / Hint (optional)</label>
                   <textarea
                     ref={frontTextRef}
                     value={frontText}
                     onChange={(e) => setFrontText(e.target.value)}
                     placeholder="Optional text shown above the image..."
                     rows={2}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none"
                   />
                 </div>
               </>
             ) : (
               <>
                 <div onFocus={() => setActiveField('front')}>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
-                    {cardType === 'cloze' ? 'Text with Cloze Deletions' : 'Front'}
-                  </label>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Front</label>
                   {renderRichControls('front')}
                   <textarea
                     ref={frontTextRef}
@@ -598,22 +535,16 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                         insertFormatting('front', '*');
                       }
                     }}
-                    placeholder={
-                      cardType === 'cloze'
-                        ? 'The capital of France is {{c1::Paris}}...'
-                        : 'Question or prompt... Use $E=mc^2$ for math, **bold**, *italic*'
-                    }
+                    placeholder="Question or prompt... Use $E=mc^2$ for math, **bold**, *italic*"
                     rows={3}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none"
                   />
                 </div>
 
                 {renderImageSlot('front')}
 
                 <div onFocus={() => setActiveField('back')}>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
-                    {cardType === 'cloze' ? 'Extra Notes (optional)' : 'Back'}
-                  </label>
+                  <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Back</label>
                   {renderRichControls('back')}
                   <textarea
                     ref={backTextRef}
@@ -628,13 +559,9 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                         insertFormatting('back', '*');
                       }
                     }}
-                    placeholder={
-                      cardType === 'cloze'
-                        ? 'Additional context or explanation...'
-                        : 'Answer or explanation... Use $ for block math, `code` for inline'
-                    }
+                    placeholder="Answer or explanation... Use $ for block math, `code` for inline"
                     rows={3}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none"
                   />
                 </div>
 
@@ -644,14 +571,14 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Tags (optional)</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Tags (optional)</label>
               <div className="relative">
-                <Tag className="w-4 h-4 text-slate-300 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Tag className="w-4 h-4 text-slate-300 dark:text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   value={tagsInput}
                   onChange={(e) => setTagsInput(e.target.value)}
                   placeholder="biology, chapter1, hard..."
-                  className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all"
                 />
               </div>
             </div>
@@ -659,7 +586,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
             <button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
             >
               <Save className="w-4 h-4" />
               Save Card & Add Another
@@ -668,20 +595,20 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
 
           {/* Live Preview */}
           <div>
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-1.5">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">
               <Eye className="w-4 h-4" />
               Live Preview
-              <span className="text-xs text-slate-300 font-normal ml-1">
+              <span className="text-xs text-slate-300 dark:text-slate-600 font-normal ml-1">
                 ({CARD_TYPES.find((t) => t.value === cardType)?.label})
               </span>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 min-h-[300px] shadow-sm">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 min-h-[300px] shadow-sm">
               <div className="space-y-4">
                 {renderPreview()}
                 {tagsInput.trim() && (
-                  <div className="border-t border-slate-100 pt-3 flex flex-wrap gap-1.5">
+                  <div className="border-t border-slate-100 dark:border-slate-700 pt-3 flex flex-wrap gap-1.5">
                     {tagsInput.split(',').map((t) => t.trim()).filter(Boolean).map((tag, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-teal-50 text-teal-600 font-medium">
+                      <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-medium">
                         {tag}
                       </span>
                     ))}
@@ -689,7 +616,7 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
                 )}
               </div>
             </div>
-            <p className="text-xs text-slate-400 mt-2 text-center">
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
               Drafts auto-save as you type
             </p>
           </div>
@@ -697,14 +624,4 @@ export function CardBuilder({ deckName, onAddCard, onBack }: CardBuilderProps) {
       </div>
     </div>
   );
-}
-
-function renderClozePreview(text: string, reveal: boolean): string {
-  if (!text) return '';
-  const clozeRegex = /\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}/g;
-  return text.replace(clozeRegex, (_, num, hidden, hint) => {
-    if (reveal) return hidden;
-    if (hint) return `<span class="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-mono text-sm">[${hint}]</span>`;
-    return `<span class="inline-block px-2 py-0.5 rounded bg-slate-200 text-slate-500 font-mono text-sm">[...]</span>`;
-  });
 }

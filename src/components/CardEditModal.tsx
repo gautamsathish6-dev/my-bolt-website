@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, ImagePlus, BoxSelect, FileText, Layers3 } from 'lucide-react';
+import { X, ImagePlus, BoxSelect, FileText } from 'lucide-react';
 import { Card, CardType, MaskRect } from '../types';
 import { resizeImage } from '../imageUtils';
 import { MaskEditor } from './MaskEditor';
@@ -14,12 +14,18 @@ type ImageSlot = 'front' | 'back';
 
 const CARD_TYPES: { value: CardType; label: string; icon: typeof FileText }[] = [
   { value: 'basic', label: 'Basic', icon: FileText },
-  { value: 'cloze', label: 'Cloze', icon: Layers3 },
   { value: 'occlusion', label: 'Occlusion', icon: BoxSelect },
 ];
 
+const MASK_COLORS = [
+  'rgb(37, 99, 235)',
+  'rgb(245, 158, 11)',
+  'rgb(239, 68, 68)',
+  'rgb(99, 102, 241)',
+];
+
 export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
-  const [cardType, setCardType] = useState<CardType>(card.cardType ?? 'basic');
+  const [cardType, setCardType] = useState<CardType>(card.cardType === 'cloze' ? 'basic' : (card.cardType ?? 'basic'));
   const [frontText, setFrontText] = useState(card.frontText);
   const [backText, setBackText] = useState(card.backText);
   const [frontImage, setFrontImage] = useState<string | null>(card.frontImage);
@@ -82,9 +88,9 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
 
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-600 mb-1.5">{label}</label>
+        <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{label}</label>
         {image ? (
-          <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white">
+          <div className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
             <img src={image} alt={`${slot} preview`} className="w-full max-h-40 object-contain" />
             <button
               onClick={() => setImageForSlot(slot, null)}
@@ -96,11 +102,28 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
               <div className="absolute top-2 left-2">
                 <button
                   onClick={() => setShowMaskEditor(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-500/90 hover:bg-teal-600 text-white text-xs font-medium transition-colors backdrop-blur-sm"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-700 text-white text-xs font-medium transition-colors backdrop-blur-sm"
                 >
                   <BoxSelect className="w-3.5 h-3.5" />
                   {masks.length > 0 ? `Edit Masks (${masks.length})` : 'Mask Image'}
                 </button>
+              </div>
+            )}
+            {slot === 'front' && cardType === 'occlusion' && masks.length > 0 && (
+              <div className="absolute inset-0 pointer-events-none">
+                {masks.map((mask, i) => (
+                  <div
+                    key={i}
+                    className="absolute"
+                    style={{
+                      left: `${mask.x * 100}%`,
+                      top: `${mask.y * 100}%`,
+                      width: `${mask.w * 100}%`,
+                      height: `${mask.h * 100}%`,
+                      backgroundColor: MASK_COLORS[i % MASK_COLORS.length],
+                    }}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -113,12 +136,12 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
             onMouseEnter={() => setActiveSlot(slot)}
             className={`rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
               activeSlot === slot
-                ? 'border-teal-300 bg-teal-50/30'
-                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                ? 'border-blue-300 bg-blue-50/30 dark:bg-slate-700/50 dark:border-blue-600'
+                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
-            <ImagePlus className="w-5 h-5 text-slate-300 mx-auto mb-1" />
-            <p className="text-xs text-slate-400">Click or paste</p>
+            <ImagePlus className="w-5 h-5 text-slate-300 dark:text-slate-600 mx-auto mb-1" />
+            <p className="text-xs text-slate-400 dark:text-slate-500">Click or paste</p>
             <input
               ref={fileRef}
               type="file"
@@ -148,12 +171,12 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
           onCancel={() => setShowMaskEditor(false)}
         />
       )}
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h3 className="font-semibold text-slate-800">Edit Card</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-2xl z-10">
+          <h3 className="font-semibold text-slate-800 dark:text-slate-100">Edit Card</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             <X className="w-5 h-5" />
           </button>
@@ -162,8 +185,8 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
         <div className="px-6 py-5 space-y-4">
           {/* Card Type Selector */}
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-2">Card Type</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Card Type</label>
+            <div className="grid grid-cols-2 gap-2">
               {CARD_TYPES.map((type) => {
                 const Icon = type.icon;
                 return (
@@ -172,8 +195,8 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
                     onClick={() => setCardType(type.value)}
                     className={`flex items-center gap-1.5 justify-center px-2 py-2 rounded-lg border-2 transition-all text-xs font-medium ${
                       cardType === type.value
-                        ? 'border-teal-400 bg-teal-50 text-teal-700'
-                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                        ? 'border-blue-400 bg-blue-50 text-blue-700 dark:bg-slate-700 dark:text-blue-400 dark:border-blue-600'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -185,49 +208,41 @@ export function CardEditModal({ card, onSave, onClose }: CardEditModalProps) {
           </div>
 
           <div onFocus={() => setActiveSlot('front')}>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">
-              {cardType === 'cloze' ? 'Text with Cloze Deletions' : 'Front'}
-            </label>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Front</label>
             <textarea
               value={frontText}
               onChange={(e) => setFrontText(e.target.value)}
-              placeholder={
-                cardType === 'cloze'
-                  ? 'The capital of France is {{c1::Paris}}...'
-                  : 'Question or prompt...'
-              }
+              placeholder="Question or prompt..."
               rows={3}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none"
             />
           </div>
 
           {renderImageSlot('front')}
 
           <div onFocus={() => setActiveSlot('back')}>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">
-              {cardType === 'cloze' ? 'Extra Notes' : 'Back'}
-            </label>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Back</label>
             <textarea
               value={backText}
               onChange={(e) => setBackText(e.target.value)}
               rows={3}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all resize-none"
             />
           </div>
 
           {renderImageSlot('back')}
         </div>
 
-        <div className="flex gap-2 justify-end px-6 py-4 border-t border-slate-200 sticky bottom-0 bg-white rounded-b-2xl">
+        <div className="flex gap-2 justify-end px-6 py-4 border-t border-slate-200 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-800 rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-lg text-slate-500 hover:bg-slate-100 text-sm font-medium"
+            className="px-4 py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-5 py-2.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 text-sm font-medium transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium transition-colors"
           >
             Save Changes
           </button>
