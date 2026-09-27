@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Layers, Plus, Settings, Trash2, Pencil, X, Check, Copy, Download, Upload, Sun, Moon } from 'lucide-react';
+import { useState } from 'react';
+import { Layers, Plus, Settings, Trash2, Pencil, X, Check, Copy, Sun, Moon, BarChart3, LogOut, ChevronDown } from 'lucide-react';
 import { Deck } from '../types';
 import { Theme } from '../useTheme';
 
@@ -9,19 +9,21 @@ interface SidebarProps {
   cardCounts: Record<string, number>;
   theme: Theme;
   onToggleTheme: () => void;
+  userEmail: string;
+  onSignOut: () => void;
   onSelect: (id: string) => void;
   onCreate: (name: string) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
-  onExport: () => void;
-  onImport: (file: File) => void;
+  onOpenAnalytics: () => void;
 }
 
 export function Sidebar({
   decks, activeDeckId, cardCounts, theme, onToggleTheme,
+  userEmail, onSignOut,
   onSelect, onCreate, onRename, onDuplicate, onDelete,
-  onExport, onImport,
+  onOpenAnalytics,
 }: SidebarProps) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -29,7 +31,7 @@ export function Sidebar({
   const [editName, setEditName] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-  const importRef = useRef<HTMLInputElement>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   const handleCreate = () => {
     if (newName.trim()) {
@@ -164,36 +166,35 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Backup section */}
+      {/* Analytics button */}
       <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex gap-1">
-          <button
-            onClick={onExport}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" /> Backup
-          </button>
-          <button
-            onClick={() => importRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" /> Restore
-          </button>
-          <input
-            ref={importRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onImport(file);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        <button
+          onClick={onOpenAnalytics}
+          className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <BarChart3 className="w-3.5 h-3.5" /> Analytics Studio
+        </button>
       </div>
 
-      <div className="p-3 border-t border-slate-200 dark:border-slate-700">
+      {/* Profile section */}
+      <div className="p-3 border-t border-slate-200 dark:border-slate-700 relative">
+        {showProfile && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowProfile(false)} />
+            <div className="absolute bottom-16 left-3 right-3 z-50 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1">
+              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
+                <p className="text-xs text-slate-400 dark:text-slate-500">Signed in as</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200 truncate font-medium">{userEmail}</p>
+              </div>
+              <button
+                onClick={() => { onSignOut(); setShowProfile(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Sign Out
+              </button>
+            </div>
+          </>
+        )}
         {creating ? (
           <div className="flex items-center gap-2">
             <input
@@ -215,12 +216,24 @@ export function Sidebar({
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setCreating(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 transition-colors text-sm font-medium border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-700"
-          >
-            <Plus className="w-4 h-4" /> New Deck
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => setCreating(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 transition-colors text-sm font-medium border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-700"
+            >
+              <Plus className="w-4 h-4" /> New Deck
+            </button>
+            <button
+              onClick={() => setShowProfile(!showProfile)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                {(userEmail[0] || '?').toUpperCase()}
+              </div>
+              <span className="flex-1 text-left truncate">{userEmail}</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
       </div>
     </aside>

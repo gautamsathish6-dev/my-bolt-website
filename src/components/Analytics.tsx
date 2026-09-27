@@ -120,13 +120,13 @@ export function Analytics({ deckName, reviewLogs, cards, onBack }: AnalyticsProp
 
   // Build weeks for heat map (columns of 7)
   const weeks = useMemo(() => {
-    const result: { date: Date; count: number }[][] = [];
+    const result: ({ date: Date; count: number } | null)[][] = [];
     const firstDay = heatMapData[0]?.date;
     if (!firstDay) return result;
     const startOffset = firstDay.getDay();
     const padded: ({ date: Date; count: number } | null)[] = Array(startOffset).fill(null).concat(heatMapData);
     for (let i = 0; i < padded.length; i += 7) {
-      result.push(padded.slice(i, i + 7) as ({ date: Date; count: number } | null)[]);
+      result.push(padded.slice(i, i + 7));
     }
     return result;
   }, [heatMapData]);

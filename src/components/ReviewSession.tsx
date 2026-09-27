@@ -10,6 +10,7 @@ interface ReviewSessionProps {
   maxInterval: number;
   isFinalReview: boolean;
   onRate: (card: Card, rating: Rating) => void;
+  onComplete?: () => void;
   onBack: () => void;
 }
 
@@ -26,6 +27,7 @@ export function ReviewSession({
   maxInterval,
   isFinalReview,
   onRate,
+  onComplete,
   onBack,
 }: ReviewSessionProps) {
   const [queue] = useState<Card[]>(initialCards);
@@ -60,6 +62,7 @@ export function ReviewSession({
     setTimeout(() => {
       if (currentIndex + 1 >= queue.length) {
         setCompleted(true);
+        if (onComplete) onComplete();
       } else {
         setCurrentIndex((i) => i + 1);
         setFlipped(false);

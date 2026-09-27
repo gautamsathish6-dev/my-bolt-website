@@ -4,12 +4,15 @@ import { Deck, Card, ReviewLog, CardState } from '../types';
 import { getDueCount, getNewCount } from '../fsrs';
 import { CardEditModal } from './CardEditModal';
 import { MathRenderer } from './MathRenderer';
+import { StudyGarden } from './StudyGarden';
 
 interface DashboardProps {
   deck: Deck;
   cards: Card[];
   reviewLogs: ReviewLog[];
   allDecks: Deck[];
+  gardenEnabled: boolean;
+  onToggleGarden: (enabled: boolean) => void;
   onAddCards: () => void;
   onStartReview: () => void;
   onSetExamDate: () => void;
@@ -27,6 +30,7 @@ interface DashboardProps {
 
 export function Dashboard({
   deck, cards, reviewLogs, allDecks,
+  gardenEnabled, onToggleGarden,
   onAddCards, onStartReview, onSetExamDate, onStartFinalReview,
   onResetHistory, onDeleteDeck,
   onEditCard, onDeleteCard,
@@ -258,6 +262,29 @@ export function Dashboard({
             })}
           </div>
         </div>
+
+        {/* Study Garden */}
+        {gardenEnabled && (
+          <div className="mb-6">
+            <StudyGarden reviewLogs={reviewLogs} allLogsCount={reviewLogs.length} />
+            <button
+              onClick={() => onToggleGarden(false)}
+              className="mt-2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              Hide garden
+            </button>
+          </div>
+        )}
+        {!gardenEnabled && (
+          <div className="mb-6">
+            <button
+              onClick={() => onToggleGarden(true)}
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              Show Study Garden
+            </button>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-8">

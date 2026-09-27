@@ -1,22 +1,28 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useStore } from './useStore';
 import { useTheme } from './useTheme';
+import { useAuth } from './useAuth';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { CardBuilder } from './components/CardBuilder';
 import { ReviewSession } from './components/ReviewSession';
 import { ExamDateModal } from './components/ExamDateModal';
 import { CSVImport } from './components/CSVImport';
+import { Analytics } from './components/Analytics';
+import { LoginScreen } from './components/LoginScreen';
 import { Card, Rating, CardType, MaskRect } from './types';
 import { isCardDue } from './fsrs';
+import { fireConfetti } from './confetti';
 
-type View = 'dashboard' | 'builder' | 'review' | 'finalReview' | 'csvImport';
+type View = 'dashboard' | 'builder' | 'review' | 'finalReview' | 'csvImport' | 'analytics';
 
 function App() {
-  const store = useStore();
+  const { user, loading: authLoading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut } = useAuth();
+  const store = useStore(user);
   const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState<View>('dashboard');
   const [showExamModal, setShowExamModal] = useState(false);
+  const reviewStartTimeRef = useRef<number>(0);
 
   const now = Date.now();
 
@@ -43,11 +49,17 @@ function App() {
   }, [store.activeDeck, now]);
 
   const handleRate = useCallback(async (card: Card, rating: Rating) => {
+    const timeSpentMs = reviewStartTimeRef.current > 0 ? Date.now() - reviewStartTimeRef.current : undefined;
+    reviewStartTimeRef.current = Date.now();
     await store.updateCard(card);
     if (store.activeDeckId) {
-      await store.logReview(card.id, store.activeDeckId, rating);
+      await store.logReview(card.id, store.activeDeckId, rating, timeSpentMs);
     }
   }, [store]);
+
+  const handleReviewComplete = useCallback(() => {
+    fireConfetti({ count: 80, duration: 3000 });
+  }, []);
 
   const handleAddCard = useCallback(async (
     frontText: string, backText: string, frontImage: string | null, backImage: string | null, tags: string[],
@@ -66,28 +78,30 @@ function App() {
     await store.removeCard(cardId);
   }, [store]);
 
-  const handleExport = useCallback(async () => {
-    const json = await store.exportData();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `omnideck-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [store]);
-
-  const handleImport = useCallback(async (file: File) => {
-    const text = await file.text();
-    await store.importData(text);
-  }, [store]);
-
   const handleCSVImport = useCallback(async (rows: { front: string; back: string }[]) => {
     if (store.activeDeckId) {
       await store.importCSV(store.activeDeckId, rows);
       setView('dashboard');
     }
   }, [store.activeDeckId, store.importCSV]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <LoginScreen
+        onSignInWithEmail={signInWithEmail}
+        onSignUpWithEmail={signUpWithEmail}
+        onSignInWithGoogle={signInWithGoogle}
+      />
+    );
+  }
 
   if (store.loading) {
     return (
@@ -105,13 +119,14 @@ function App() {
         cardCounts={cardCounts}
         theme={theme}
         onToggleTheme={toggleTheme}
+        userEmail={user.email ?? ''}
+        onSignOut={signOut}
         onSelect={(id) => { store.setActiveDeckId(id); setView('dashboard'); }}
         onCreate={store.createDeck}
         onRename={store.renameDeck}
         onDuplicate={store.duplicateDeck}
         onDelete={store.removeDeck}
-        onExport={handleExport}
-        onImport={handleImport}
+        onOpenAnalytics={() => setView('analytics')}
       />
 
       {store.activeDeck && view === 'dashboard' && (
@@ -120,10 +135,12 @@ function App() {
           cards={store.cards}
           reviewLogs={store.reviewLogs}
           allDecks={store.decks}
+          gardenEnabled={store.gardenEnabled}
+          onToggleGarden={store.toggleGarden}
           onAddCards={() => setView('builder')}
-          onStartReview={() => setView('review')}
+          onStartReview={() => { reviewStartTimeRef.current = Date.now(); setView('review'); }}
           onSetExamDate={() => setShowExamModal(true)}
-          onStartFinalReview={() => setView('finalReview')}
+          onStartFinalReview={() => { reviewStartTimeRef.current = Date.now(); setView('finalReview'); }}
           onResetHistory={() => store.activeDeckId && store.resetDeckHistory(store.activeDeckId)}
           onDeleteDeck={() => store.activeDeckId && store.removeDeck(store.activeDeckId)}
           onEditCard={handleEditCard}
@@ -133,6 +150,15 @@ function App() {
           onBulkReset={store.bulkResetHistory}
           onReorder={store.reorderCards}
           onImportCSV={() => setView('csvImport')}
+        />
+      )}
+
+      {view === 'analytics' && (
+        <Analytics
+          deckName={store.activeDeck?.name ?? 'All Decks'}
+          reviewLogs={store.reviewLogs}
+          cards={store.cards}
+          onBack={() => setView('dashboard')}
         />
       )}
 
@@ -159,6 +185,7 @@ function App() {
           maxInterval={maxInterval}
           isFinalReview={false}
           onRate={handleRate}
+          onComplete={handleReviewComplete}
           onBack={() => {
             setView('dashboard');
             if (store.activeDeckId) {
@@ -176,6 +203,7 @@ function App() {
           maxInterval={maxInterval}
           isFinalReview={true}
           onRate={handleRate}
+          onComplete={handleReviewComplete}
           onBack={() => {
             setView('dashboard');
             if (store.activeDeckId) {
@@ -202,7 +230,7 @@ function App() {
         />
       )}
 
-      {!store.activeDeck && (
+      {!store.activeDeck && view === 'dashboard' && (
         <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
           <div className="text-center max-w-sm px-6">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center mb-4">
