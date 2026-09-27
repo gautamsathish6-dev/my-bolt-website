@@ -1,129 +1,256 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { Deck, Card, ReviewLog, Rating, CardType, MaskRect } from './types';
-import * as db from './db';
+import { supabase } from './supabaseClient';
 
-export function useStore() {
+function toDbCard(card: Card): Record<string, unknown> {
+  return {
+    id: card.id,
+    deck_id: card.deckId,
+    card_type: card.cardType,
+    front_text: card.frontText,
+    back_text: card.backText,
+    front_image: card.frontImage,
+    back_image: card.backImage,
+    tags: card.tags,
+    sort_order: card.sortOrder,
+    masks: card.masks,
+    stability: card.stability,
+    difficulty: card.difficulty,
+    elapsed_days: card.elapsedDays,
+    scheduled_days: card.scheduledDays,
+    reps: card.reps,
+    lapses: card.lapses,
+    state: card.state,
+    last_review: card.lastReview,
+    due: card.due,
+  };
+}
+
+function fromDbCard(row: Record<string, unknown>): Card {
+  return {
+    id: row.id as string,
+    deckId: row.deck_id as string,
+    cardType: (row.card_type as CardType) ?? 'basic',
+    frontText: (row.front_text as string) ?? '',
+    backText: (row.back_text as string) ?? '',
+    frontImage: (row.front_image as string | null) ?? null,
+    backImage: (row.back_image as string | null) ?? null,
+    tags: (row.tags as string[]) ?? [],
+    sortOrder: (row.sort_order as number) ?? 0,
+    createdAt: new Date(row.created_at as string).getTime(),
+    masks: (row.masks as MaskRect[]) ?? [],
+    stability: (row.stability as number) ?? 0,
+    difficulty: (row.difficulty as number) ?? 0,
+    elapsedDays: (row.elapsed_days as number) ?? 0,
+    scheduledDays: (row.scheduled_days as number) ?? 0,
+    reps: (row.reps as number) ?? 0,
+    lapses: (row.lapses as number) ?? 0,
+    state: (row.state as number) ?? 0,
+    lastReview: (row.last_review as number | null) ?? null,
+    due: (row.due as number) ?? Date.now(),
+  };
+}
+
+function fromDbDeck(row: Record<string, unknown>): Deck {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    createdAt: new Date(row.created_at as string).getTime(),
+    examDate: (row.exam_date as number | null) ?? null,
+    finalReviewHours: (row.final_review_hours as number) ?? 48,
+  };
+}
+
+function fromDbReviewLog(row: Record<string, unknown>): ReviewLog {
+  return {
+    id: row.id as string,
+    cardId: row.card_id as string,
+    deckId: row.deck_id as string,
+    rating: row.rating as Rating,
+    reviewedAt: new Date(row.reviewed_at as string).getTime(),
+  };
+}
+
+export function useStore(user: User | null) {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [reviewLogs, setReviewLogs] = useState<ReviewLog[]>([]);
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gardenEnabled, setGardenEnabled] = useState(true);
 
   const refreshDecks = useCallback(async () => {
-    const allDecks = await db.getAllDecks();
-    allDecks.sort((a, b) => a.createdAt - b.createdAt);
-    setDecks(allDecks);
-    if (allDecks.length > 0 && !activeDeckId) {
-      setActiveDeckId(allDecks[0].id);
+    if (!user) return;
+    const { data, error } = await supabase.from('decks').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('Failed to load decks:', error); return; }
+    const mapped = (data || []).map(fromDbDeck);
+    setDecks(mapped);
+    if (mapped.length > 0 && !activeDeckId) {
+      setActiveDeckId(mapped[0].id);
     }
-  }, [activeDeckId]);
+  }, [user, activeDeckId]);
 
   const refreshCards = useCallback(async (deckId: string) => {
-    const deckCards = await db.getCardsByDeck(deckId);
-    deckCards.sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt - b.createdAt);
-    setCards(deckCards);
-  }, []);
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('deck_id', deckId)
+      .order('sort_order', { ascending: true });
+    if (error) { console.error('Failed to load cards:', error); return; }
+    setCards((data || []).map(fromDbCard));
+  }, [user]);
 
   const refreshReviewLogs = useCallback(async (deckId: string) => {
-    const logs = await db.getReviewLogsByDeck(deckId);
-    setReviewLogs(logs);
-  }, []);
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('review_logs')
+      .select('*')
+      .eq('deck_id', deckId)
+      .order('reviewed_at', { ascending: true });
+    if (error) { console.error('Failed to load review logs:', error); return; }
+    setReviewLogs((data || []).map(fromDbReviewLog));
+  }, [user]);
+
+  const refreshAllReviewLogs = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('review_logs')
+      .select('*')
+      .order('reviewed_at', { ascending: true });
+    if (error) { console.error('Failed to load all review logs:', error); return; }
+    return (data || []).map(fromDbReviewLog);
+  }, [user]);
+
+  const loadUserSettings = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) { console.error('Failed to load settings:', error); return; }
+    if (data) {
+      setGardenEnabled(data.garden_enabled as boolean);
+    } else {
+      await supabase.from('user_settings').upsert({ id: user.id, garden_enabled: true, theme: 'light' });
+      setGardenEnabled(true);
+    }
+  }, [user]);
 
   useEffect(() => {
+    if (!user) {
+      setDecks([]);
+      setCards([]);
+      setReviewLogs([]);
+      setActiveDeckId(null);
+      setLoading(false);
+      return;
+    }
     (async () => {
+      await loadUserSettings();
       await refreshDecks();
       setLoading(false);
     })();
-  }, [refreshDecks]);
+  }, [user, refreshDecks, loadUserSettings]);
 
   useEffect(() => {
-    if (activeDeckId) {
+    if (activeDeckId && user) {
       refreshCards(activeDeckId);
       refreshReviewLogs(activeDeckId);
     } else {
       setCards([]);
       setReviewLogs([]);
     }
-  }, [activeDeckId, refreshCards, refreshReviewLogs]);
+  }, [activeDeckId, refreshCards, refreshReviewLogs, user]);
 
   const createDeck = useCallback(async (name: string): Promise<string> => {
-    const deck: Deck = {
-      id: crypto.randomUUID(),
-      name,
-      createdAt: Date.now(),
-      examDate: null,
-      finalReviewHours: 48,
-    };
-    await db.saveDeck(deck);
+    const { data, error } = await supabase
+      .from('decks')
+      .insert({ name })
+      .select()
+      .single();
+    if (error) { console.error('Failed to create deck:', error); return ''; }
+    const deck = fromDbDeck(data);
     await refreshDecks();
     setActiveDeckId(deck.id);
     return deck.id;
   }, [refreshDecks]);
 
   const renameDeck = useCallback(async (id: string, name: string) => {
-    const deck = decks.find((d) => d.id === id);
-    if (!deck) return;
-    await db.saveDeck({ ...deck, name });
+    const { error } = await supabase.from('decks').update({ name }).eq('id', id);
+    if (error) console.error('Failed to rename deck:', error);
     await refreshDecks();
-  }, [decks, refreshDecks]);
+  }, [refreshDecks]);
 
   const duplicateDeck = useCallback(async (id: string) => {
     const deck = decks.find((d) => d.id === id);
     if (!deck) return;
-    const newDeck: Deck = {
-      id: crypto.randomUUID(),
-      name: `${deck.name} (Copy)`,
-      createdAt: Date.now(),
-      examDate: null,
-      finalReviewHours: deck.finalReviewHours ?? 48,
-    };
-    const deckCards = await db.getCardsByDeck(id);
+    const { data: newDeckData, error: deckError } = await supabase
+      .from('decks')
+      .insert({ name: `${deck.name} (Copy)`, exam_date: null, final_review_hours: deck.finalReviewHours ?? 48 })
+      .select()
+      .single();
+    if (deckError || !newDeckData) { console.error('Failed to duplicate deck:', deckError); return; }
+    const newDeckId = newDeckData.id;
+
+    const { data: deckCards, error: cardsError } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('deck_id', id);
+    if (cardsError || !deckCards) { console.error('Failed to load cards for duplicate:', cardsError); return; }
+
     const now = Date.now();
-    const clonedCards = deckCards.map((c, i) => ({
-      ...c,
-      id: crypto.randomUUID(),
-      deckId: newDeck.id,
-      createdAt: now + i,
+    const newCards = deckCards.map((c, i) => ({
+      deck_id: newDeckId,
+      card_type: c.card_type,
+      front_text: c.front_text,
+      back_text: c.back_text,
+      front_image: c.front_image,
+      back_image: c.back_image,
+      tags: c.tags,
+      sort_order: c.sort_order,
+      masks: c.masks,
       stability: 0,
       difficulty: 0,
-      elapsedDays: 0,
-      scheduledDays: 0,
+      elapsed_days: 0,
+      scheduled_days: 0,
       reps: 0,
       lapses: 0,
-      state: 0 as const,
-      lastReview: null,
+      state: 0,
+      last_review: null,
       due: now,
     }));
-    await db.saveDeck(newDeck);
-    await db.saveCards(clonedCards);
+
+    const { error: insertError } = await supabase.from('cards').insert(newCards);
+    if (insertError) console.error('Failed to insert duplicated cards:', insertError);
+
     await refreshDecks();
-    setActiveDeckId(newDeck.id);
+    setActiveDeckId(newDeckId);
   }, [decks, refreshDecks]);
 
   const removeDeck = useCallback(async (id: string) => {
-    await db.deleteReviewLogsByDeck(id);
-    await db.deleteCardsByDeck(id);
-    await db.deleteDeck(id);
+    const { error } = await supabase.from('decks').delete().eq('id', id);
+    if (error) console.error('Failed to delete deck:', error);
     await refreshDecks();
     if (activeDeckId === id) {
-      const remaining = await db.getAllDecks();
+      const remaining = decks.filter((d) => d.id !== id);
       setActiveDeckId(remaining.length > 0 ? remaining[0].id : null);
     }
-  }, [activeDeckId, refreshDecks]);
+  }, [activeDeckId, decks, refreshDecks]);
 
   const setExamDate = useCallback(async (deckId: string, date: number | null) => {
-    const deck = decks.find((d) => d.id === deckId);
-    if (!deck) return;
-    await db.saveDeck({ ...deck, examDate: date });
+    const { error } = await supabase.from('decks').update({ exam_date: date }).eq('id', deckId);
+    if (error) console.error('Failed to set exam date:', error);
     await refreshDecks();
-  }, [decks, refreshDecks]);
+  }, [refreshDecks]);
 
   const setFinalReviewHours = useCallback(async (deckId: string, hours: number) => {
-    const deck = decks.find((d) => d.id === deckId);
-    if (!deck) return;
-    await db.saveDeck({ ...deck, finalReviewHours: hours });
+    const { error } = await supabase.from('decks').update({ final_review_hours: hours }).eq('id', deckId);
+    if (error) console.error('Failed to set final review hours:', error);
     await refreshDecks();
-  }, [decks, refreshDecks]);
+  }, [refreshDecks]);
 
   const addCard = useCallback(async (
     deckId: string,
@@ -135,174 +262,188 @@ export function useStore() {
     cardType: CardType = 'basic',
     masks: MaskRect[] = []
   ) => {
-    const deckCards = await db.getCardsByDeck(deckId);
-    const maxSort = deckCards.reduce((max, c) => Math.max(max, c.sortOrder), -1);
+    const { data: existing } = await supabase
+      .from('cards')
+      .select('sort_order')
+      .eq('deck_id', deckId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    const maxSort = existing && existing.length > 0 ? (existing[0].sort_order as number) : -1;
     const now = Date.now();
-    const card: Card = {
-      id: crypto.randomUUID(),
-      deckId,
-      cardType,
-      frontText,
-      backText,
-      frontImage,
-      backImage,
-      tags,
-      sortOrder: maxSort + 1,
-      createdAt: now,
-      masks,
-      stability: 0,
-      difficulty: 0,
-      elapsedDays: 0,
-      scheduledDays: 0,
-      reps: 0,
-      lapses: 0,
-      state: 0,
-      lastReview: null,
-      due: now,
-    };
-    await db.saveCard(card);
-    if (deckId === activeDeckId) {
-      await refreshCards(deckId);
-    }
-    return card;
+    const { data, error } = await supabase
+      .from('cards')
+      .insert({
+        deck_id: deckId,
+        card_type: cardType,
+        front_text: frontText,
+        back_text: backText,
+        front_image: frontImage,
+        back_image: backImage,
+        tags,
+        sort_order: maxSort + 1,
+        masks,
+        stability: 0,
+        difficulty: 0,
+        elapsed_days: 0,
+        scheduled_days: 0,
+        reps: 0,
+        lapses: 0,
+        state: 0,
+        last_review: null,
+        due: now,
+      })
+      .select()
+      .single();
+    if (error) { console.error('Failed to add card:', error); return null; }
+    if (deckId === activeDeckId) await refreshCards(deckId);
+    return fromDbCard(data);
   }, [activeDeckId, refreshCards]);
 
   const updateCard = useCallback(async (card: Card) => {
-    await db.saveCard(card);
-    if (card.deckId === activeDeckId) {
-      await refreshCards(card.deckId);
-    }
+    const { error } = await supabase.from('cards').update(toDbCard(card)).eq('id', card.id);
+    if (error) console.error('Failed to update card:', error);
+    if (card.deckId === activeDeckId) await refreshCards(card.deckId);
   }, [activeDeckId, refreshCards]);
 
   const removeCard = useCallback(async (id: string) => {
-    await db.deleteCard(id);
-    if (activeDeckId) {
-      await refreshCards(activeDeckId);
-    }
+    const { error } = await supabase.from('cards').delete().eq('id', id);
+    if (error) console.error('Failed to delete card:', error);
+    if (activeDeckId) await refreshCards(activeDeckId);
   }, [activeDeckId, refreshCards]);
 
   const resetDeckHistory = useCallback(async (deckId: string) => {
-    const deckCards = await db.getCardsByDeck(deckId);
     const now = Date.now();
-    const resetCards = deckCards.map((c) => ({
-      ...c,
+    const { data: deckCards, error: fetchError } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('deck_id', deckId);
+    if (fetchError || !deckCards) { console.error('Failed to fetch cards for reset:', fetchError); return; }
+
+    const updates = deckCards.map((c) => ({
+      id: c.id,
       stability: 0,
       difficulty: 0,
-      elapsedDays: 0,
-      scheduledDays: 0,
+      elapsed_days: 0,
+      scheduled_days: 0,
       reps: 0,
       lapses: 0,
-      state: 0 as const,
-      lastReview: null,
+      state: 0,
+      last_review: null,
       due: now,
     }));
-    await db.saveCards(resetCards);
-    await db.deleteReviewLogsByDeck(deckId);
+
+    const { error: updateError } = await supabase.from('cards').upsert(updates);
+    if (updateError) console.error('Failed to reset card history:', updateError);
+
+    const { error: logDeleteError } = await supabase.from('review_logs').delete().eq('deck_id', deckId);
+    if (logDeleteError) console.error('Failed to delete review logs:', logDeleteError);
+
     if (deckId === activeDeckId) {
       await refreshCards(deckId);
       await refreshReviewLogs(deckId);
     }
   }, [activeDeckId, refreshCards, refreshReviewLogs]);
 
-  const logReview = useCallback(async (cardId: string, deckId: string, rating: Rating) => {
-    const log: ReviewLog = {
-      id: crypto.randomUUID(),
-      cardId,
-      deckId,
+  const logReview = useCallback(async (cardId: string, deckId: string, rating: Rating, timeSpentMs?: number) => {
+    const { error } = await supabase.from('review_logs').insert({
+      card_id: cardId,
+      deck_id: deckId,
       rating,
-      reviewedAt: Date.now(),
-    };
-    await db.addReviewLog(log);
+      time_spent_ms: timeSpentMs ?? null,
+    });
+    if (error) console.error('Failed to log review:', error);
   }, []);
 
-  // Bulk operations
   const bulkDeleteCards = useCallback(async (cardIds: string[]) => {
-    for (const id of cardIds) {
-      await db.deleteCard(id);
-    }
+    if (cardIds.length === 0) return;
+    const { error } = await supabase.from('cards').delete().in('id', cardIds);
+    if (error) console.error('Failed to bulk delete cards:', error);
     if (activeDeckId) await refreshCards(activeDeckId);
   }, [activeDeckId, refreshCards]);
 
   const bulkMoveCards = useCallback(async (cardIds: string[], targetDeckId: string) => {
-    const allCards = await db.getCardsByDeck(activeDeckId || '');
-    const targetCards = await db.getCardsByDeck(targetDeckId);
-    const maxSort = targetCards.reduce((max, c) => Math.max(max, c.sortOrder), -1);
-    const toMove = allCards.filter((c) => cardIds.includes(c.id));
-    const moved = toMove.map((c, i) => ({
-      ...c,
-      deckId: targetDeckId,
-      sortOrder: maxSort + 1 + i,
-    }));
-    await db.saveCards(moved);
+    const { data: targetCards } = await supabase
+      .from('cards')
+      .select('sort_order')
+      .eq('deck_id', targetDeckId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    const maxSort = targetCards && targetCards.length > 0 ? (targetCards[0].sort_order as number) : -1;
+    const updates = cardIds.map((id, i) => ({ id, deck_id: targetDeckId, sort_order: maxSort + 1 + i }));
+    const { error } = await supabase.from('cards').upsert(updates);
+    if (error) console.error('Failed to bulk move cards:', error);
     if (activeDeckId) await refreshCards(activeDeckId);
   }, [activeDeckId, refreshCards]);
 
   const bulkResetHistory = useCallback(async (cardIds: string[]) => {
     const now = Date.now();
-    const allCards = await db.getCardsByDeck(activeDeckId || '');
-    const toReset = allCards.filter((c) => cardIds.includes(c.id));
-    const reset = toReset.map((c) => ({
-      ...c,
+    const updates = cardIds.map((id) => ({
+      id,
       stability: 0,
       difficulty: 0,
-      elapsedDays: 0,
-      scheduledDays: 0,
+      elapsed_days: 0,
+      scheduled_days: 0,
       reps: 0,
       lapses: 0,
-      state: 0 as const,
-      lastReview: null,
+      state: 0,
+      last_review: null,
       due: now,
     }));
-    await db.saveCards(reset);
+    const { error } = await supabase.from('cards').upsert(updates);
+    if (error) console.error('Failed to bulk reset history:', error);
     if (activeDeckId) await refreshCards(activeDeckId);
   }, [activeDeckId, refreshCards]);
 
   const reorderCards = useCallback(async (reorderedCards: Card[]) => {
-    const updated = reorderedCards.map((c, i) => ({ ...c, sortOrder: i }));
-    await db.saveCards(updated);
+    const updates = reorderedCards.map((c, i) => ({ id: c.id, sort_order: i }));
+    const { error } = await supabase.from('cards').upsert(updates);
+    if (error) console.error('Failed to reorder cards:', error);
     if (activeDeckId) await refreshCards(activeDeckId);
   }, [activeDeckId, refreshCards]);
 
-  // Export / Import
-  const exportData = useCallback(async (): Promise<string> => {
-    return db.exportAllData();
-  }, []);
-
-  const importData = useCallback(async (json: string) => {
-    await db.importAllData(json);
-    await refreshDecks();
-  }, [refreshDecks]);
-
-  // CSV Import
   const importCSV = useCallback(async (deckId: string, rows: { front: string; back: string }[]) => {
-    const deckCards = await db.getCardsByDeck(deckId);
-    const maxSort = deckCards.reduce((max, c) => Math.max(max, c.sortOrder), -1);
+    if (rows.length === 0) return;
+    const { data: existing } = await supabase
+      .from('cards')
+      .select('sort_order')
+      .eq('deck_id', deckId)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    const maxSort = existing && existing.length > 0 ? (existing[0].sort_order as number) : -1;
     const now = Date.now();
-    const newCards: Card[] = rows.map((row, i) => ({
-      id: crypto.randomUUID(),
-      deckId,
-      cardType: 'basic' as CardType,
-      frontText: row.front,
-      backText: row.back,
-      frontImage: null,
-      backImage: null,
-      tags: [],
-      sortOrder: maxSort + 1 + i,
-      createdAt: now + i,
-      masks: [],
+    const newCards = rows.map((row, i) => ({
+      deck_id: deckId,
+      card_type: 'basic' as CardType,
+      front_text: row.front,
+      back_text: row.back,
+      front_image: null,
+      back_image: null,
+      tags: [] as string[],
+      sort_order: maxSort + 1 + i,
+      masks: [] as MaskRect[],
       stability: 0,
       difficulty: 0,
-      elapsedDays: 0,
-      scheduledDays: 0,
+      elapsed_days: 0,
+      scheduled_days: 0,
       reps: 0,
       lapses: 0,
       state: 0,
-      lastReview: null,
+      last_review: null,
       due: now,
     }));
-    await db.saveCards(newCards);
+    const { error } = await supabase.from('cards').insert(newCards);
+    if (error) console.error('Failed to import CSV:', error);
     if (deckId === activeDeckId) await refreshCards(deckId);
   }, [activeDeckId, refreshCards]);
+
+  const toggleGarden = useCallback(async (enabled: boolean) => {
+    if (!user) return;
+    setGardenEnabled(enabled);
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ id: user.id, garden_enabled: enabled, theme: 'light' });
+    if (error) console.error('Failed to toggle garden:', error);
+  }, [user]);
 
   const activeDeck = decks.find((d) => d.id === activeDeckId) || null;
 
@@ -313,6 +454,7 @@ export function useStore() {
     activeDeck,
     activeDeckId,
     loading,
+    gardenEnabled,
     setActiveDeckId,
     createDeck,
     renameDeck,
@@ -329,10 +471,10 @@ export function useStore() {
     bulkMoveCards,
     bulkResetHistory,
     reorderCards,
-    exportData,
-    importData,
     importCSV,
     refreshCards,
     refreshReviewLogs,
+    refreshAllReviewLogs,
+    toggleGarden,
   };
 }
